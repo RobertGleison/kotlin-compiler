@@ -10,7 +10,7 @@ $alphanum = [a-zA-Z0-9]
 
 tokens :-
   $white+                       ;
-  "--".*                        ; -- Single-line comment
+  "//".*                        ; -- Single-line comment
   "/*"(.|\n)*"*/"               ; -- Multi-line comment
   
   -- Delimiters
