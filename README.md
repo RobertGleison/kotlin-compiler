@@ -41,12 +41,12 @@ happy --version
 
 1. Generate the lexical analyzer from Alex specification:
 ```
-alex lexer.x -o Lexer.hs
+alex Lexer.x -o Lexer.hs
 ```
 
 2. Generate the parser generator from Happy specification: (Not working yet)
 ```
-happy parser.y -o Parser.hs
+happy Parser.y -o Parser.hs
 ```
 
 3. Run the compiler with example files:

@@ -10,15 +10,15 @@ main = do
     putStrLn ""
     
     -- Get the AST using Parser.y
-    let parseResult = happyParseExpr tokens
+    --let parseResult = happyParseExpr tokens
 
-    case parseResult of
+    --case parseResult of
 
-        Right ast -> do
-            putStrLn "Success! AST:"
-            print ast
+    --    Right ast -> do
+    --        putStrLn "Success! AST:"
+    --        print ast
             
-        Left err -> do
+    --    Left err -> do
 
-            putStrLn "Failed! Error:"
-            print err
+    --        putStrLn "Failed! Error:"
+    --        print err
