@@ -1,67 +1,35 @@
 module Main where
 
-import System.Environment (getArgs)
-import System.IO (readFile)
-import Control.Monad (when)
-import System.Exit (exitFailure)
+import qualified Data.List as L
+import System.Environment
+import System.IO
+import System.Exit  
+import Control.Monad
+import Lexer (Token(..), lexer)
+import Parser (parse)
+import AST
+import Printer
+import Printer (prettyPrintAST)
 
-import Lexer (Token, lexer)
-import Parser ( parse
-             , AST(..)
-             , Program(..)
-             , Function(..)
-             , Type(..)
-             , Param(..)
-             , Declare(..)
-             , Stmt(..)
-             )
 
--- For better error handling
+
+-- Tipo para tratamento de erros do compilador
 data CompilerError 
-    = LexerError String
-    | ParserError String
+    = LexerError String    -- Erro durante análise léxica
+    | ParserError String   -- Erro durante análise sintática
     deriving Show
 
--- Helper function to print AST in a readable format
-prettyPrintAST :: AST -> String
-prettyPrintAST (Program fns) = unlines $ map showFunction fns
-  where
-    showFunction (Function name params retType decls stmts) =
-        "Function: " ++ name ++ "\n" ++
-        "  Parameters: " ++ showParams params ++ "\n" ++
-        "  Return Type: " ++ showType retType ++ "\n" ++
-        "  Declarations: " ++ showDecls decls ++ "\n" ++
-        "  Statements: " ++ showStmts stmts ++ "\n"
 
-    showParams [] = "none"
-    showParams ps = unlines $ map (\(Param name typ) -> "    " ++ name ++ ": " ++ showType typ) ps
 
-    showType IntType = "Int"
-    showType DoubleType = "Double"
-    showType BooleanType = "Boolean"
-    showType StringType = "String"
-    showType FloatType = "Float"
-    showType UnitType = "Unit"
-
-    showDecls [] = "none"
-    showDecls ds = unlines $ map showDecl ds
-
-    showDecl (ValDecl name typ expr) = "    val " ++ name ++ ": " ++ showType typ
-    showDecl (VarDecl name typ expr) = "    var " ++ name ++ ": " ++ showType typ
-    showDecl (VarDeclEmpty name typ) = "    var " ++ name ++ ": " ++ showType typ
-
-    showStmts [] = "none"
-    showStmts ss = unlines $ map (("    " ++) . show) ss
-
--- Main processing pipeline
+-- Pipeline principal de processamento do arquivo
 processFile :: String -> IO ()
 processFile input = do
-    -- Step 1: Lexical Analysis
+    -- Passo 1: Análise Léxica (quebra o código em tokens)
     let tokens = lexer input
     putStrLn "Tokens:"
     print tokens
     
-    -- Step 2: Parsing
+    -- Passo 2: Análise Sintática (converte tokens em AST)
     case parse tokens of
         Right ast -> do
             putStrLn "\nAbstract Syntax Tree:"
@@ -71,7 +39,9 @@ processFile input = do
             putStrLn $ "Parser error: " ++ err
             exitFailure
 
--- Test function for quick tests
+
+
+-- Função para testes rápidos de input
 testInput :: String -> IO ()
 testInput input = do
     putStrLn "Test input:"
@@ -79,20 +49,26 @@ testInput input = do
     putStrLn "\nProcessing..."
     processFile input
 
+
+
+-- Função principal do programa
 main :: IO ()
 main = do
     args <- getArgs
     case args of
+        -- Processamento de arquivo específico
         [filename] -> do
             putStrLn $ "Reading from file: " ++ filename
             input <- readFile filename
             processFile input
             
+        -- Leitura da entrada padrão
         [] -> do
             putStrLn "Reading from standard input (type your code, press Ctrl+D when done):"
             input <- getContents
             processFile input
             
+        -- Mensagem de uso em caso de argumentos inválidos
         _ -> do
             putStrLn "Usage: ./Main [filename]"
             putStrLn "If no filename is provided, input will be read from stdin"

@@ -11,22 +11,12 @@
 #endif
 module Parser 
     ( parse
-    , AST(..)
-    , Program(..)
-    , Function(..)
-    , Type(..)
-    , Param(..)
-    , Declare(..)
-    , Stmt(..)
-    , Expr(..)
-    , BinOperator(..)
-    , UnOperator(..)
-    , prettyPrint
     ) where
 
 import Data.Maybe
 import qualified Data.List as L
 import Lexer (Token(..))
+import AST
 import qualified Data.Array as Happy_Data_Array
 import qualified Data.Bits as Bits
 import qualified GHC.Exts as Happy_GHC_Exts
@@ -1066,99 +1056,11 @@ parser tks = happySomeParser where
 happySeq = happyDontSeq
 
 
-type AST = Program
-
-data Program = Program [Function]
-
-data Function = Function String [Param] Type [Declare] [Stmt]
-
-data Type = IntType | DoubleType | BooleanType | StringType | FloatType | UnitType
-
-data Param = Param String Type
-
-data Declare = ValDecl String Type Expr
-             | VarDecl String Type Expr 
-             | VarDeclEmpty String Type
-data Stmt 
-    = ExprStmt Expr                    -- Expression statement (e.g., x = 5;)
-    | ReturnStmt Expr                  -- Return statement (e.g., return x;)
-    | IfStmt Expr [Stmt] [Stmt]        -- If statement with condition, then-block, and optional else-block
-    | WhileStmt Expr [Stmt]            -- While loop with condition and body
-    | ForStmt String Expr [Stmt]       -- For loop with iterator variable, collection expression, and body
-    deriving (Show, Eq)
-
-
--- Binary operators - expanded to include all operators from tokens
-data BinOperator 
-    = Add | Sub | Mul | Div | Mod           -- Arithmetic (+, -, *, /, %)
-    | And | Or                              -- Logical (&&, ||)
-    | Eq | Neq | Lt | Lte | Gt | Gte        -- Comparison (==, !=, <, <=, >, >=)
-    | AssignOp                                -- Simple assignment (=)
-    | PlusAssign | MinusAssign             -- Compound assignment (+=, -=)
-    | TimesAssign | DivAssign | ModAssign   -- Compound assignment (*=, /=, %=)
-    | Dot                                   -- Member access (.)
-    deriving (Show, Eq)
-
-
--- Unary operators - expanded to include all from tokens
-data UnOperator 
-    = Neg                    -- Numeric negation (-)
-    | Not                    -- Logical negation (!)
-    | PreInc | PreDec        -- Prefix increment/decrement (++x, --x)
-    | PostInc | PostDec      -- Postfix increment/decrement (x++, x--)
-    deriving (Show, Eq)
-
-
--- Expression type - expanded to handle all operators
-data Expr 
-    = IntLit Int                    -- Integer literal
-    | DoubleLit Double              -- Double literal
-    | BoolLit Bool                  -- Boolean literal
-    | StringLit String              -- String literal
-    | Id String                     -- Variable reference
-    | BinOp Expr BinOperator Expr   -- Binary operations
-    | UnOp UnOperator Expr          -- Prefix unary operations
-    | PostOp Expr UnOperator        -- Postfix unary operations (for ++ and --)
-    | Assignment String Expr            -- Simple assignment
-    | CompoundAssign String BinOperator Expr  -- Compound assignments (+=, -=, etc.)
-    | Call String [Expr]            -- Function call
-    | ArrayAccess Expr Expr         -- Array indexing with []
-    | MemberAccess Expr String      -- Member access with dot (.)
-    deriving (Show, Eq)
-
-
 parseError :: [Token] -> Either String a
 parseError toks = Left $ "Parse error at token(s): " ++ show toks
 
 parse :: [Token] -> Either String AST
 parse = parser
-
--- Helper function for pretty printing
-prettyPrint :: AST -> String
-prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
-  where
-    printFunction (Function name params retType decls stmts) =
-        "Function " ++ name ++ ":\n" ++
-        "  Parameters: " ++ show params ++ "\n" ++
-        "  Return Type: " ++ show retType ++ "\n" ++
-        "  Declarations: " ++ show decls ++ "\n" ++
-        "  Statements: " ++ show stmts ++ "\n"
-
--- Add deriving Show and Eq to any types that need them
-deriving instance Show Type
-deriving instance Eq Type
-
-deriving instance Show Param
-deriving instance Eq Param
-
-deriving instance Show Program
-deriving instance Eq Program
-
-deriving instance Show Function
-deriving instance Eq Function
-
-deriving instance Show Declare
-deriving instance Eq Declare
 -- $Id: GenericTemplate.hs,v 1.26 2005/01/14 14:47:22 simonmar Exp $
 
 #if !defined(__GLASGOW_HASKELL__)

@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-imports #-}
 {-# LANGUAGE CPP #-}
-{-# LINE 1 "Lexer.x" #-}
+{-# LINE 2 "Lexer.x" #-}
 module Lexer 
     ( Token(..)
     , lexer     -- Export lexer instead of alexScanTokens
@@ -17240,7 +17240,7 @@ alexRightContext IBOX(sc) user__ _ _ input__ =
         -- match when checking the right context, just
         -- the first match will do.
 #endif
-{-# LINE 83 "Lexer.x" #-}
+{-# LINE 91 "Lexer.x" #-}
 data Token
   = ID String
   | INTEGER Int
@@ -17265,10 +17265,12 @@ data Token
 
   -- Keywords
   | FUN | VAL | VAR | IF | ELSE | WHILE | FOR | IN | RETURN
-  
+
   -- Types
   | INT | FLOAT | DOUBLE | BOOLEAN | STRING
   deriving (Eq, Show)
 
+
+-- Pega uma String como input e devolve uma lista de Tokens
 lexer :: String -> [Token]
 lexer = alexScanTokens

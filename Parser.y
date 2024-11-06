@@ -1,29 +1,25 @@
+-- Exporta os modulos para Main.hs e importa outros recursos, dentre eles o arquivo AST que contem as data structures
 {
 module Parser 
     ( parse
-    , AST(..)
-    , Program(..)
-    , Function(..)
-    , Type(..)
-    , Param(..)
-    , Declare(..)
-    , Stmt(..)
-    , Expr(..)
-    , BinOperator(..)
-    , UnOperator(..)
-    , prettyPrint
     ) where
 
 import Data.Maybe
 import qualified Data.List as L
 import Lexer (Token(..))
+import AST
 }
+
+
 
 %name parser
 %tokentype { Token }
 %error { parseError }
 %monad { Either String } { (>>=) } { return }
 
+
+
+-- Mapeamento dos inputs para Tokens. Os tipos de tokens vem do Lexer.
 %token
   -- Literals and identifiers
   id              { ID $$ }
@@ -87,7 +83,8 @@ import Lexer (Token(..))
   String          { STRING }
 
 
--- Operator Precedence
+
+-- Precedência de operadores. Uma multiplicação por exemplo tem precedência sobre uma soma, e por aí vai.
 %right '=' '+=' '-=' '*=' '/=' '%='    -- lowest precedence
 %left '||'
 %left '&&'
@@ -100,22 +97,39 @@ import Lexer (Token(..))
 
 %%
 
-Prog : ProgList              { Program $1 }   -- A program consists of a list of functions
+
+
+
+-- :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::: INÍCIO DA GRAMÁTICA :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+Prog : ProgList              { Program $1 }   -- Um programa consiste em uma lista de funções
   
 
--- List of functions that make up the program
-ProgList : Function ProgList      { $1 : $2 }  -- One or more functions      
-         |                        { [] }       -- Empty program is valid
+
+-- Lista de funções que compõem o programa
+ProgList : Function ProgList      { $1 : $2 }  -- Uma ou mais funções      
+         |                        { [] }       -- Programa vazio é válido
 
 
--- Function declarations with two forms:
--- 1. Function with explicit return type
--- 2. Function void (implicitly returns Unit)
-Function : fun id '(' ParamList ')' ':' Type '{' Declares Stmts '}' { Function $2 $4 $7 $9 $10 }
-         | fun id '(' ParamList ')' '{' Declares Stmts '}' { Function $2 $4 UnitType $7 $8 }
 
 
--- Basic types supported in the language
+--    Declarações de função com duas formas:
+--        -Com tipo de retorno: fun soma(x: Int): Int { return x + 1 }
+--        -Sem tipo retorno: fun hello(name: String) { println(name) }
+
+--        fun id '(' ParamList ')' ':' Type '{' Declares Stmts '}'
+--        $1  $2 $3     $4     $5  $6   $7   $8    $9     $10  $11
+
+--        fun id '(' ParamList ')' '{' Declares Stmts '}'
+--        $1  $2 $3     $4     $5  $6    $7      $8    $9    
+
+
+Function : fun id '(' ParamList ')' ':' Type '{' Declares Stmts '}' { Function $2 $4 $7 $9 $10 } 
+         | fun id '(' ParamList ')' '{' Declares Stmts '}' { Function $2 $4 UnitType $7 $8 } 
+
+
+
+-- Tipos básicos suportados na linguagem
 Type : Int     { IntType }
      | Double   { DoubleType }
      | Boolean  { BooleanType }
@@ -123,59 +137,75 @@ Type : Int     { IntType }
      | Float    { FloatType }
 
 
--- Parameter list in function declarations
-ParamList : Param ',' ParamList   { $1 : $3 }   -- Multiple parameters separated by commas
-          | Param                  { [$1] }     -- Single parameter
-          |                       { [] }        -- Empty parameter list
+
+-- Lista de parâmetros em declarações de função. Ex: [Param "altura" DoubleType, Param "largura" DoubleType, Param "profundidade" DoubleType]
+ParamList : Param ',' ParamList   { $1 : $3 }   -- Múltiplos parâmetros separados por vírgula
+          | Param                  { [$1] }     -- Parâmetro único
+          |                       { [] }        -- Lista de parâmetros vazia
 
 
--- Individual parameter declaration with type annotation
+
+-- Declaração individual de parâmetro com anotação de tipo. Ex: [Idade, IntType]
 Param : id ':' Type        { Param $1 $3 }
 
 
--- List of declarations (variables and values)
-Declares : Declare Declares      { $1 : $2 }   -- Multiple declarations
-        |                       { [] }         -- Empty declarations block
+
+-- Lista de declarações (variáveis e valores). Ex: [VarDeclEmpty "idade" IntType, ValDecl "nome" StringType (StringLit "João"), VarDecl "peso" DoubleType (DoubleLit 75.5),]
+Declares : Declare Declares      { $1 : $2 }   -- Múltiplas declarações
+         |                       { [] }         -- Bloco de declarações vazio
 
 
--- Three forms of declarations:
--- 1. Immutable value (val) with initialization
--- 2. Mutable variable (var) with initialization
--- 3. Mutable variable (var) without initialization
+
+-- Três formas de declarações:
+-- 1. Valor imutável (val) com inicialização
+-- 2. Variável mutável (var) com inicialização
+-- 3. Variável mutável (var) sem inicialização
 Declare : val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 5;
         | var id ':' Type '=' Expr ';'  { VarDecl $2 $4 $6 }    -- var x: Int = 5;
         | var id ':' Type ';'           { VarDeclEmpty $2 $4 }   -- var x: Int;
 
 
--- List of statements in a function body
+
+-- Lista de declarações no corpo da função
 Stmts : Stmt Stmts                 { $1 : $2 }
       |                            { [] }
 
 
--- Different types of statements supported:
+
+-- Separa o statement de If para analisar separadamente.
 Stmt : IfStmt                      { $1 }
      | OtherStmt                   { $1 }
 
 
+
+-- Isso aq parece que tem ambiguidade, mas é tratado pelo happy.
 IfStmt : if '(' Expr ')' '{' Stmts '}' else '{' Stmts '}'  { IfStmt $3 $6 $10 }
        | if '(' Expr ')' '{' Stmts '}'                     { IfStmt $3 $6 [] }
 
 
+
+-- Statements sem ser If
 OtherStmt : Expr ';'                                       { ExprStmt $1 }
           | return Expr ';'                                { ReturnStmt $2 }
           | while '(' Expr ')' '{' Stmts '}'               { WhileStmt $3 $6 }
           | for '(' id in Expr ')' '{' Stmts '}'           { ForStmt $3 $5 $8 }
 
 
+
+-- Lista de expressões (para chamadas de função, etc.)
 ExprList : Expr ',' ExprList        { $1 : $3 }
          | Expr                     { [$1] }
-         |                         { [] }
+         |                          { [] }
 
 
+
+-- Expressões podem ser atribuições ou expressões lógicas
 Expr : AssignExpr                { $1 }
-     | LogicalExpr              { $1 }              
+     | LogicalExpr               { $1 }              
 
 
+
+-- Expressões de atribuição (simples e compostas)
 AssignExpr : id '=' LogicalExpr              { Assignment $1 $3 }
            | id '+=' LogicalExpr             { CompoundAssign $1 Add $3 }
            | id '-=' LogicalExpr             { CompoundAssign $1 Sub $3 }
@@ -185,12 +215,20 @@ AssignExpr : id '=' LogicalExpr              { Assignment $1 $3 }
            | LogicalExpr                     { $1 }
 
 
+
+-- Expressões lógicas (OR)
 LogicalExpr : LogicalExpr '||' AndExpr       { BinOp $1 Or $3 }
            | AndExpr                            { $1 }
 
+
+
+-- Expressões AND
 AndExpr : AndExpr '&&' CompareExpr          { BinOp $1 And $3 }
         | CompareExpr                       { $1 }
 
+
+
+-- Expressões de comparação
 CompareExpr : CompareExpr '==' AddExpr      { BinOp $1 Eq $3 }
             | CompareExpr '!=' AddExpr      { BinOp $1 Neq $3 }
             | CompareExpr '<' AddExpr       { BinOp $1 Lt $3 }
@@ -199,28 +237,42 @@ CompareExpr : CompareExpr '==' AddExpr      { BinOp $1 Eq $3 }
             | CompareExpr '>=' AddExpr      { BinOp $1 Gte $3 }
             | AddExpr                       { $1 }
 
+
+
+-- Expressões de adição e subtração
 AddExpr : AddExpr '+' Term                  { BinOp $1 Add $3 }
         | AddExpr '-' Term                  { BinOp $1 Sub $3 }
         | Term                                   { $1 }
 
+
+
+-- Expressões de multiplicação, divisão e módulo
 Term : Term '*' UnaryExpr                   { BinOp $1 Mul $3 }
      | Term '/' UnaryExpr                   { BinOp $1 Div $3 }
      | Term '%' UnaryExpr                   { BinOp $1 Mod $3 }
      | UnaryExpr                           { $1 }
 
 
+
+-- Expressões unárias (prefixo)
 UnaryExpr : '!' UnaryExpr                   { UnOp Not $2 }
           | '-' UnaryExpr                   { UnOp Neg $2 }
           | '++' PostfixExpr                { UnOp PreInc $2 }
           | '--' PostfixExpr                { UnOp PreDec $2 }
           | PostfixExpr                     { $1 }
 
+
+
+-- Expressões pós-fixadas (postfix)
 PostfixExpr : PostfixExpr '++'              { PostOp $1 PostInc }
             | PostfixExpr '--'              { PostOp $1 PostDec }
             | PostfixExpr '[' Expr ']'      { ArrayAccess $1 $3 }
             | PostfixExpr '.' id            { MemberAccess $1 $3 }
             | Primary                       { $1 }
 
+
+
+-- Expressões primárias (valores literais, identificadores, etc.)
 Primary : int                               { IntLit $1 }
         | double                            { DoubleLit $1 }
         | string                            { StringLit $1 }
@@ -231,102 +283,17 @@ Primary : int                               { IntLit $1 }
 
 
 
+-- Chamada de função
 FunctionCall : id '(' ExprList ')'  { Call $1 $3 }
 
 
+-- Usa como input uma lista de Tokens e retorna uma AST se não houver erro. Se houver erro retorna uma string de mensagem contendo o erro.
 {
-
-type AST = Program
-
-data Program = Program [Function]
-
-data Function = Function String [Param] Type [Declare] [Stmt]
-
-data Type = IntType | DoubleType | BooleanType | StringType | FloatType | UnitType
-
-data Param = Param String Type
-
-data Declare = ValDecl String Type Expr
-             | VarDecl String Type Expr 
-             | VarDeclEmpty String Type
-data Stmt 
-    = ExprStmt Expr                    -- Expression statement (e.g., x = 5;)
-    | ReturnStmt Expr                  -- Return statement (e.g., return x;)
-    | IfStmt Expr [Stmt] [Stmt]        -- If statement with condition, then-block, and optional else-block
-    | WhileStmt Expr [Stmt]            -- While loop with condition and body
-    | ForStmt String Expr [Stmt]       -- For loop with iterator variable, collection expression, and body
-    deriving (Show, Eq)
-
-
--- Binary operators - expanded to include all operators from tokens
-data BinOperator 
-    = Add | Sub | Mul | Div | Mod           -- Arithmetic (+, -, *, /, %)
-    | And | Or                              -- Logical (&&, ||)
-    | Eq | Neq | Lt | Lte | Gt | Gte        -- Comparison (==, !=, <, <=, >, >=)
-    | AssignOp                                -- Simple assignment (=)
-    | PlusAssign | MinusAssign             -- Compound assignment (+=, -=)
-    | TimesAssign | DivAssign | ModAssign   -- Compound assignment (*=, /=, %=)
-    | Dot                                   -- Member access (.)
-    deriving (Show, Eq)
-
-
--- Unary operators - expanded to include all from tokens
-data UnOperator 
-    = Neg                    -- Numeric negation (-)
-    | Not                    -- Logical negation (!)
-    | PreInc | PreDec        -- Prefix increment/decrement (++x, --x)
-    | PostInc | PostDec      -- Postfix increment/decrement (x++, x--)
-    deriving (Show, Eq)
-
-
--- Expression type - expanded to handle all operators
-data Expr 
-    = IntLit Int                    -- Integer literal
-    | DoubleLit Double              -- Double literal
-    | BoolLit Bool                  -- Boolean literal
-    | StringLit String              -- String literal
-    | Id String                     -- Variable reference
-    | BinOp Expr BinOperator Expr   -- Binary operations
-    | UnOp UnOperator Expr          -- Prefix unary operations
-    | PostOp Expr UnOperator        -- Postfix unary operations (for ++ and --)
-    | Assignment String Expr            -- Simple assignment
-    | CompoundAssign String BinOperator Expr  -- Compound assignments (+=, -=, etc.)
-    | Call String [Expr]            -- Function call
-    | ArrayAccess Expr Expr         -- Array indexing with []
-    | MemberAccess Expr String      -- Member access with dot (.)
-    deriving (Show, Eq)
-
-
 parseError :: [Token] -> Either String a
 parseError toks = Left $ "Parse error at token(s): " ++ show toks
 
 parse :: [Token] -> Either String AST
 parse = parser
-
--- Helper function for pretty printing
-prettyPrint :: AST -> String
-prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
-  where
-    printFunction (Function name params retType decls stmts) =
-        "Function " ++ name ++ ":\n" ++
-        "  Parameters: " ++ show params ++ "\n" ++
-        "  Return Type: " ++ show retType ++ "\n" ++
-        "  Declarations: " ++ show decls ++ "\n" ++
-        "  Statements: " ++ show stmts ++ "\n"
-
--- Add deriving Show and Eq to any types that need them
-deriving instance Show Type
-deriving instance Eq Type
-
-deriving instance Show Param
-deriving instance Eq Param
-
-deriving instance Show Program
-deriving instance Eq Program
-
-deriving instance Show Function
-deriving instance Eq Function
-
-deriving instance Show Declare
-deriving instance Eq Declare
 }
+
+

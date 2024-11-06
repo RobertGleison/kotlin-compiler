@@ -1,16 +1,22 @@
+-- Exporta os módulos para Main.hs
 {
 module Lexer 
     ( Token(..)
     , lexer     -- Export lexer instead of alexScanTokens
     ) where
 }
-
 %wrapper "basic"
 
+
+
+-- Regex para digitos, letras e alfanuméricos
 $digit = 0-9
 $alpha = [a-zA-Z]
 $alphanum = [a-zA-Z0-9]
 
+
+
+-- Mapeamento de caracteres para Tokens
 tokens :-
   $white+                       ;
   "//".*                        ; -- Single-line comment
@@ -80,6 +86,8 @@ tokens :-
   -- Identifiers
   $alpha($alphanum|_)*          { \s -> ID s }
 
+
+-- Criação dos Tokens
 {
 data Token
   = ID String
@@ -105,11 +113,13 @@ data Token
 
   -- Keywords
   | FUN | VAL | VAR | IF | ELSE | WHILE | FOR | IN | RETURN
-  
+
   -- Types
   | INT | FLOAT | DOUBLE | BOOLEAN | STRING
   deriving (Eq, Show)
 
+
+-- Pega uma String como input e devolve uma lista de Tokens
 lexer :: String -> [Token]
 lexer = alexScanTokens
 }

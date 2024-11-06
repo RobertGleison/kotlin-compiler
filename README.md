@@ -52,5 +52,5 @@ happy Parser.y -o Parser.hs
 3. Run the compiler with example files:
 ```
 ghc Main.hs -o Main
-./Main < examples/example1.kt
+./Main examples/example1.kt
 ```
