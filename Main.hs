@@ -1,7 +1,6 @@
 import Lexer (lexer)
-import Parser (parser)
 
-main :: IO ()  -- lowercase 'main'
+main :: IO ()
 main = do
     input <- getContents 
     let tokens = lexer input

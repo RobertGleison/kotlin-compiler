@@ -1,10 +1,16 @@
 {
-module Lexer where
+module Lexer 
+    ( Token(..)
+    , lexer     -- Export lexer instead of alexScanTokens
+    ) where
 }
+
 %wrapper "basic"
+
 $digit = 0-9
 $alpha = [a-zA-Z]
 $alphanum = [a-zA-Z0-9]
+
 tokens :-
   $white+                       ;
   "//".*                        ; -- Single-line comment
@@ -22,13 +28,6 @@ tokens :-
   ";"                           { \_ -> SEMICOLON }
   ":"                           { \_ -> COLON }
   
-  -- Special operators
-  ".."                          { \_ -> RANGE }
-  "?."                          { \_ -> SAFE_ACCESS }
-  "?:"                          { \_ -> ELVIS }
-  "::"                          { \_ -> SCOPE_RES }
-  "=>"                          { \_ -> ARROW }
-
   -- Operators
   "+="                          { \_ -> PLUS_ASSIGN }
   "-="                          { \_ -> MINUS_ASSIGN }
@@ -52,27 +51,17 @@ tokens :-
   "&&"                          { \_ -> AND }
   "||"                          { \_ -> OR }
   "!"                           { \_ -> NOT }
-
+  
   -- Keywords and special operators
-  "!in"                         { \_ -> NOT_IN }
-  "is"                          { \_ -> IS }
-  "!is"                         { \_ -> NOT_IS }
-  "as"                          { \_ -> AS }
   fun                           { \_ -> FUN }
   val                           { \_ -> VAL }
   var                           { \_ -> VAR }
   if                            { \_ -> IF }
   else                          { \_ -> ELSE }
-  when                          { \_ -> WHEN }
   while                         { \_ -> WHILE }
   for                           { \_ -> FOR }
   in                            { \_ -> IN }
   return                        { \_ -> RETURN }
-  class                         { \_ -> CLASS }
-  interface                     { \_ -> INTERFACE }
-  object                        { \_ -> OBJECT }
-  package                       { \_ -> PACKAGE }
-  import                        { \_ -> IMPORT }
   
   -- Types
   Int                           { \_ -> INT }
@@ -103,9 +92,6 @@ data Token
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
   | COMMA | DOT | SEMICOLON | COLON
 
-  -- Special operators
-  | RANGE | SAFE_ACCESS | ELVIS | SCOPE_RES | ARROW
-
   -- Assignment operators
   | ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN
 
@@ -117,14 +103,13 @@ data Token
   -- Logical operators
   | AND | OR | NOT
 
-  -- Keywords and special operators
-  | IS | NOT_IS | AS | IN | NOT_IN
-
-  -- Other keywords
-  | FUN | VAL | VAR | IF | ELSE | WHEN | WHILE | FOR | RETURN
-  | CLASS | INTERFACE | OBJECT | PACKAGE | IMPORT
+  -- Keywords
+  | FUN | VAL | VAR | IF | ELSE | WHILE | FOR | IN | RETURN
   
   -- Types
   | INT | FLOAT | DOUBLE | BOOLEAN | STRING
   deriving (Eq, Show)
+
+lexer :: String -> [Token]
+lexer = alexScanTokens
 }
