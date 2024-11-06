@@ -1,12 +1,28 @@
 {
-module Parser where
+module Parser 
+    ( parse
+    , AST(..)
+    , Program(..)
+    , Function(..)
+    , Type(..)
+    , Param(..)
+    , Declare(..)
+    , Stmt(..)
+    , Expr(..)
+    , BinOperator(..)
+    , UnOperator(..)
+    , prettyPrint
+    ) where
+
 import Data.Maybe
 import qualified Data.List as L
+import Lexer (Token(..))
 }
 
 %name parser
 %tokentype { Token }
 %error { parseError }
+%monad { Either String } { (>>=) } { return }
 
 %token
   -- Literals and identifiers
@@ -160,7 +176,7 @@ Expr : AssignExpr                { $1 }
      | LogicalExpr              { $1 }              
 
 
-AssignExpr : id '=' LogicalExpr              { Assign $1 $3 }
+AssignExpr : id '=' LogicalExpr              { Assignment $1 $3 }
            | id '+=' LogicalExpr             { CompoundAssign $1 Add $3 }
            | id '-=' LogicalExpr             { CompoundAssign $1 Sub $3 }
            | id '*=' LogicalExpr             { CompoundAssign $1 Mul $3 }
@@ -220,6 +236,8 @@ FunctionCall : id '(' ExprList ')'  { Call $1 $3 }
 
 {
 
+type AST = Program
+
 data Program = Program [Function]
 
 data Function = Function String [Param] Type [Declare] [Stmt]
@@ -245,7 +263,7 @@ data BinOperator
     = Add | Sub | Mul | Div | Mod           -- Arithmetic (+, -, *, /, %)
     | And | Or                              -- Logical (&&, ||)
     | Eq | Neq | Lt | Lte | Gt | Gte        -- Comparison (==, !=, <, <=, >, >=)
-    | Assign                                -- Simple assignment (=)
+    | AssignOp                                -- Simple assignment (=)
     | PlusAssign | MinusAssign             -- Compound assignment (+=, -=)
     | TimesAssign | DivAssign | ModAssign   -- Compound assignment (*=, /=, %=)
     | Dot                                   -- Member access (.)
@@ -271,7 +289,7 @@ data Expr
     | BinOp Expr BinOperator Expr   -- Binary operations
     | UnOp UnOperator Expr          -- Prefix unary operations
     | PostOp Expr UnOperator        -- Postfix unary operations (for ++ and --)
-    | Assign String Expr            -- Simple assignment
+    | Assignment String Expr            -- Simple assignment
     | CompoundAssign String BinOperator Expr  -- Compound assignments (+=, -=, etc.)
     | Call String [Expr]            -- Function call
     | ArrayAccess Expr Expr         -- Array indexing with []
@@ -279,10 +297,36 @@ data Expr
     deriving (Show, Eq)
 
 
+parseError :: [Token] -> Either String a
+parseError toks = Left $ "Parse error at token(s): " ++ show toks
 
+parse :: [Token] -> Either String AST
+parse = parser
 
+-- Helper function for pretty printing
+prettyPrint :: AST -> String
+prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
+  where
+    printFunction (Function name params retType decls stmts) =
+        "Function " ++ name ++ ":\n" ++
+        "  Parameters: " ++ show params ++ "\n" ++
+        "  Return Type: " ++ show retType ++ "\n" ++
+        "  Declarations: " ++ show decls ++ "\n" ++
+        "  Statements: " ++ show stmts ++ "\n"
 
-parseError :: [Token] -> a
-parseError toks = error ("parse error at" ++ show toks)
+-- Add deriving Show and Eq to any types that need them
+deriving instance Show Type
+deriving instance Eq Type
 
+deriving instance Show Param
+deriving instance Eq Param
+
+deriving instance Show Program
+deriving instance Eq Program
+
+deriving instance Show Function
+deriving instance Eq Function
+
+deriving instance Show Declare
+deriving instance Eq Declare
 }

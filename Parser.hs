@@ -9,9 +9,24 @@
 #if __GLASGOW_HASKELL__ >= 710
 {-# LANGUAGE PartialTypeSignatures #-}
 #endif
-module Parser where
+module Parser 
+    ( parse
+    , AST(..)
+    , Program(..)
+    , Function(..)
+    , Type(..)
+    , Param(..)
+    , Declare(..)
+    , Stmt(..)
+    , Expr(..)
+    , BinOperator(..)
+    , UnOperator(..)
+    , prettyPrint
+    ) where
+
 import Data.Maybe
 import qualified Data.List as L
+import Lexer (Token(..))
 import qualified Data.Array as Happy_Data_Array
 import qualified Data.Bits as Bits
 import qualified GHC.Exts as Happy_GHC_Exts
@@ -539,7 +554,7 @@ happyReduction_35 (HappyAbsSyn19  happy_var_3)
         _
         (HappyTerminal (ID happy_var_1))
          =  HappyAbsSyn18
-                 (Assign happy_var_1 happy_var_3
+                 (Assignment happy_var_1 happy_var_3
         )
 happyReduction_35 _ _ _  = notHappyAtAll 
 
@@ -1036,34 +1051,22 @@ happyNewToken action sts stk (tk:tks) =
 happyError_ explist 52# tk tks = happyError' (tks, explist)
 happyError_ explist _ tk tks = happyError' ((tk:tks), explist)
 
-newtype HappyIdentity a = HappyIdentity a
-happyIdentity = HappyIdentity
-happyRunIdentity (HappyIdentity a) = a
-
-instance Prelude.Functor HappyIdentity where
-    fmap f (HappyIdentity a) = HappyIdentity (f a)
-
-instance Applicative HappyIdentity where
-    pure  = HappyIdentity
-    (<*>) = ap
-instance Prelude.Monad HappyIdentity where
-    return = pure
-    (HappyIdentity p) >>= q = q p
-
-happyThen :: () => HappyIdentity a -> (a -> HappyIdentity b) -> HappyIdentity b
-happyThen = (Prelude.>>=)
-happyReturn :: () => a -> HappyIdentity a
-happyReturn = (Prelude.return)
-happyThen1 m k tks = (Prelude.>>=) m (\a -> k a tks)
-happyReturn1 :: () => a -> b -> HappyIdentity a
-happyReturn1 = \a tks -> (Prelude.return) a
-happyError' :: () => ([(Token)], [Prelude.String]) -> HappyIdentity a
-happyError' = HappyIdentity Prelude.. (\(tokens, _) -> parseError tokens)
-parser tks = happyRunIdentity happySomeParser where
+happyThen :: () => Either String a -> (a -> Either String b) -> Either String b
+happyThen = ((>>=))
+happyReturn :: () => a -> Either String a
+happyReturn = (return)
+happyThen1 m k tks = ((>>=)) m (\a -> k a tks)
+happyReturn1 :: () => a -> b -> Either String a
+happyReturn1 = \a tks -> (return) a
+happyError' :: () => ([(Token)], [Prelude.String]) -> Either String a
+happyError' = (\(tokens, _) -> parseError tokens)
+parser tks = happySomeParser where
  happySomeParser = happyThen (happyParse 0# tks) (\x -> case x of {HappyAbsSyn4 z -> happyReturn z; _other -> notHappyAtAll })
 
 happySeq = happyDontSeq
 
+
+type AST = Program
 
 data Program = Program [Function]
 
@@ -1090,7 +1093,7 @@ data BinOperator
     = Add | Sub | Mul | Div | Mod           -- Arithmetic (+, -, *, /, %)
     | And | Or                              -- Logical (&&, ||)
     | Eq | Neq | Lt | Lte | Gt | Gte        -- Comparison (==, !=, <, <=, >, >=)
-    | Assign                                -- Simple assignment (=)
+    | AssignOp                                -- Simple assignment (=)
     | PlusAssign | MinusAssign             -- Compound assignment (+=, -=)
     | TimesAssign | DivAssign | ModAssign   -- Compound assignment (*=, /=, %=)
     | Dot                                   -- Member access (.)
@@ -1116,7 +1119,7 @@ data Expr
     | BinOp Expr BinOperator Expr   -- Binary operations
     | UnOp UnOperator Expr          -- Prefix unary operations
     | PostOp Expr UnOperator        -- Postfix unary operations (for ++ and --)
-    | Assign String Expr            -- Simple assignment
+    | Assignment String Expr            -- Simple assignment
     | CompoundAssign String BinOperator Expr  -- Compound assignments (+=, -=, etc.)
     | Call String [Expr]            -- Function call
     | ArrayAccess Expr Expr         -- Array indexing with []
@@ -1124,11 +1127,38 @@ data Expr
     deriving (Show, Eq)
 
 
+parseError :: [Token] -> Either String a
+parseError toks = Left $ "Parse error at token(s): " ++ show toks
 
+parse :: [Token] -> Either String AST
+parse = parser
 
+-- Helper function for pretty printing
+prettyPrint :: AST -> String
+prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
+  where
+    printFunction (Function name params retType decls stmts) =
+        "Function " ++ name ++ ":\n" ++
+        "  Parameters: " ++ show params ++ "\n" ++
+        "  Return Type: " ++ show retType ++ "\n" ++
+        "  Declarations: " ++ show decls ++ "\n" ++
+        "  Statements: " ++ show stmts ++ "\n"
 
-parseError :: [Token] -> a
-parseError toks = error ("parse error at" ++ show toks)
+-- Add deriving Show and Eq to any types that need them
+deriving instance Show Type
+deriving instance Eq Type
+
+deriving instance Show Param
+deriving instance Eq Param
+
+deriving instance Show Program
+deriving instance Eq Program
+
+deriving instance Show Function
+deriving instance Eq Function
+
+deriving instance Show Declare
+deriving instance Eq Declare
 -- $Id: GenericTemplate.hs,v 1.26 2005/01/14 14:47:22 simonmar Exp $
 
 #if !defined(__GLASGOW_HASKELL__)

@@ -1,10 +1,10 @@
-// Example 1: Arithmetic and boolean expressions
-fun main() {
-    val a = 5
-    val b = 3
-    val sum = a + b
-    val product = a * b
-    val isGreater = a > b
+fun main() : Int {
+    var x: Int = 42;
+    var y: Int = 10;
     
-    print("Sum: $sum, Product: $product, Is a > b? $isGreater")
+    if (x > y) {
+        return x;
+    } else {
+        return y;
+    }
 }
