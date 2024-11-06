@@ -132,7 +132,7 @@ Declare : val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 
 
 
 -- List of statements in a function body
-Stmts : Stmts Stmt                 { $2 : $1 }
+Stmts : Stmt Stmts                 { $1 : $2 }
       |                            { [] }
 
 
@@ -157,7 +157,7 @@ ExprList : Expr ',' ExprList        { $1 : $3 }
 
 
 Expr : AssignExpr                { $1 }
-     | LogicalExpr              { $1 }              { $1 }
+     | LogicalExpr              { $1 }              
 
 
 AssignExpr : id '=' LogicalExpr              { Assign $1 $3 }
@@ -170,7 +170,7 @@ AssignExpr : id '=' LogicalExpr              { Assign $1 $3 }
 
 
 LogicalExpr : LogicalExpr '||' AndExpr       { BinOp $1 Or $3 }
-           | AndExpr    
+           | AndExpr                            { $1 }
 
 AndExpr : AndExpr '&&' CompareExpr          { BinOp $1 And $3 }
         | CompareExpr                       { $1 }
@@ -185,7 +185,7 @@ CompareExpr : CompareExpr '==' AddExpr      { BinOp $1 Eq $3 }
 
 AddExpr : AddExpr '+' Term                  { BinOp $1 Add $3 }
         | AddExpr '-' Term                  { BinOp $1 Sub $3 }
-        | Term           
+        | Term                                   { $1 }
 
 Term : Term '*' UnaryExpr                   { BinOp $1 Mul $3 }
      | Term '/' UnaryExpr                   { BinOp $1 Div $3 }
@@ -214,19 +214,23 @@ Primary : int                               { IntLit $1 }
         | FunctionCall                      { $1 }
 
 
-Factor : int                   { IntLit $1 }
-       | double                { DoubleLit $1 }
-       | string                { StringLit $1 }
-       | bool                  { BoolLit $1 }
-       | id                    { Id $1 }
-       | '(' Expr ')'          { $2 }
-       | FunctionCall          { $1 }
-
 
 FunctionCall : id '(' ExprList ')'  { Call $1 $3 }
 
 
+{
 
+data Program = Program [Function]
+
+data Function = Function String [Param] Type [Declare] [Stmt]
+
+data Type = IntType | DoubleType | BooleanType | StringType | FloatType | UnitType
+
+data Param = Param String Type
+
+data Declare = ValDecl String Type Expr
+             | VarDecl String Type Expr 
+             | VarDeclEmpty String Type
 data Stmt 
     = ExprStmt Expr                    -- Expression statement (e.g., x = 5;)
     | ReturnStmt Expr                  -- Return statement (e.g., return x;)
@@ -273,3 +277,12 @@ data Expr
     | ArrayAccess Expr Expr         -- Array indexing with []
     | MemberAccess Expr String      -- Member access with dot (.)
     deriving (Show, Eq)
+
+
+
+
+
+parseError :: [Token] -> a
+parseError toks = error ("parse error at" ++ show toks)
+
+}
