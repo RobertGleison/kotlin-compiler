@@ -5,7 +5,7 @@ module AST
     , Function(..)
     , Type(..)
     , Param(..)
-    , Declare(..)
+    -- , Declare(..)
     , Stmt(..)
     , Expr(..)
     , BinOperator(..)
@@ -37,6 +37,7 @@ data Program = Program [Function]
         "greet"                                -- name
         [Param "name" StringType]              -- parameters
         StringType                             -- return type
+        --!!!!!! NOT ANYMORE
         [ValDecl                               -- declarations
             "message" 
             StringType 
@@ -46,9 +47,10 @@ data Program = Program [Function]
                 (Id "name")
             )
         ]
+        --!!!!!! UNTIL HERE
         [ReturnStmt (Id "message")]
 -}  
-data Function = Function String [Param] Type [Declare] [Stmt]
+data Function = Function String [Param] Type [Stmt]
     deriving (Show, Eq)
 
 
@@ -72,11 +74,11 @@ data Param = Param String Type
 
 
 -- Exemplo de representação: ValDecl "pi" DoubleType (DoubleLit 3.14159) 
-data Declare 
-    = ValDecl String Type Expr  -- Ex: val pi: Double = 3.14159  
-    | VarDecl String Type Expr  -- Ex: var counter: Int = 0  
-    | VarDeclEmpty String Type  -- Ex: var name: String  
-    deriving (Show, Eq)
+-- data Declare 
+--     = ValDecl String Type Expr  -- Ex: val pi: Double = 3.14159  
+--     | VarDecl String Type Expr  -- Ex: var counter: Int = 0  
+--     | VarDeclEmpty String Type  -- Ex: var name: String  
+--     deriving (Show, Eq)
 
 
 
@@ -86,7 +88,9 @@ data Stmt
     | ReturnStmt Expr                  -- Declaração de retorno (return x;)
     | IfStmt Expr [Stmt] [Stmt]        -- Declaração If com condição, bloco then e bloco else opcional
     | WhileStmt Expr [Stmt]            -- Loop While com condição e corpo
-    | ForStmt String Expr [Stmt]       -- Loop For com variável iteradora, expressão de coleção e corpo
+    | ValDecl String Type Expr         -- Ex: val pi: Double = 3.14159  
+    | VarDecl String Type Expr         -- Ex: var counter: Int = 0  
+    | VarDeclEmpty String Type         -- Ex: var name: String  
     deriving (Show, Eq)
 
 
@@ -129,6 +133,8 @@ data Expr
     | Call String [Expr]            -- Chamada de função
     | ArrayAccess Expr Expr         -- Acesso a array com []
     | MemberAccess Expr String      -- Acesso a membro com ponto (.)
+    | ReadLn                        -- Ler linha da entrada padrão
+    | PrintStmt Expr                -- Print da expressão fornecida
     deriving (Show, Eq)
 
 
@@ -137,11 +143,11 @@ data Expr
 prettyPrint :: AST -> String
 prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
   where
-    printFunction (Function name params retType decls stmts) =
+    printFunction (Function name params retType stmts) =
         "Function " ++ name ++ ":\n" ++
         "  Parameters: " ++ show params ++ "\n" ++
         "  Return Type: " ++ show retType ++ "\n" ++
-        "  Declarations: " ++ show decls ++ "\n" ++
+        -- "  Declarations: " ++ show decls ++ "\n" ++
         "  Statements: " ++ show stmts ++ "\n"
 
 

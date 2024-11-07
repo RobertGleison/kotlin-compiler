@@ -1,10 +1,16 @@
-1. Aceitar assing sem type hint. Ex:
-var x: Int = 42; -> var x = 42;
-var y: Int = 10; -> var y = 10;
+1. Permitir variáveis globais
+Ex:
+var x = 3;
+fun main() : Int {
+    x = 1;
+}
 
-2. Aceitar funções sem return type. Ex:
-fun main() : Int {... -> fun main() {...
+2. Possibilitar que as linhas não terminem com ";"
 
-3. Implementar readln
+3. Não faria mais sentido que essas partes fossem:
+    LogicalExpr : LogicalExpr '||' LogicalExpr       { BinOp $1 Or $3 }
+            | AndExpr 
 
-4. Implementar print
+Ao invés de:
+    LogicalExpr : LogicalExpr '||' AndExpr       { BinOp $1 Or $3 }
+            | AndExpr 

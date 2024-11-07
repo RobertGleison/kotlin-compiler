@@ -39,7 +39,7 @@ import AST
   '.'             { DOT }
   ';'             { SEMICOLON }
   ':'             { COLON }
-  
+
   -- Operators
   '='             { ASSIGN }
   '+='            { PLUS_ASSIGN }
@@ -71,9 +71,9 @@ import AST
   if              { IF }
   else            { ELSE }
   while           { WHILE }
-  for             { FOR }
-  in              { IN }
   return          { RETURN }
+  print           { PRINT }
+  readln          { READLN }
   
   -- Types
   Int             { INT }
@@ -117,15 +117,14 @@ ProgList : Function ProgList      { $1 : $2 }  -- Uma ou mais funções
 --        -Com tipo de retorno: fun soma(x: Int): Int { return x + 1 }
 --        -Sem tipo retorno: fun hello(name: String) { println(name) }
 
---        fun id '(' ParamList ')' ':' Type '{' Declares Stmts '}'
---        $1  $2 $3     $4     $5  $6   $7   $8    $9     $10  $11
+--        fun id '(' ParamList ')' ':' Type '{' Stmts '}'
+--        $1  $2 $3     $4     $5  $6   $7   $8   $9  $10
 
---        fun id '(' ParamList ')' '{' Declares Stmts '}'
---        $1  $2 $3     $4     $5  $6    $7      $8    $9    
+--        fun id '(' ParamList ')' '{' Stmts '}'
+--        $1  $2 $3     $4     $5  $6    $7  $8    
 
-
-Function : fun id '(' ParamList ')' ':' Type '{' Declares Stmts '}' { Function $2 $4 $7 $9 $10 } 
-         | fun id '(' ParamList ')' '{' Declares Stmts '}' { Function $2 $4 UnitType $7 $8 } 
+Function : fun id '(' ParamList ')' ':' Type '{' Stmts '}' { Function $2 $4 $7 $9 } 
+         | fun id '(' ParamList ')' '{' Stmts '}' { Function $2 $4 UnitType $7 } 
 
 
 
@@ -150,31 +149,38 @@ Param : id ':' Type        { Param $1 $3 }
 
 
 
--- Lista de declarações (variáveis e valores). Ex: [VarDeclEmpty "idade" IntType, ValDecl "nome" StringType (StringLit "João"), VarDecl "peso" DoubleType (DoubleLit 75.5),]
-Declares : Declare Declares      { $1 : $2 }   -- Múltiplas declarações
-         |                       { [] }         -- Bloco de declarações vazio
-
-
-
--- Três formas de declarações:
--- 1. Valor imutável (val) com inicialização
--- 2. Variável mutável (var) com inicialização
--- 3. Variável mutável (var) sem inicialização
-Declare : val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 5;
-        | var id ':' Type '=' Expr ';'  { VarDecl $2 $4 $6 }    -- var x: Int = 5;
-        | var id ':' Type ';'           { VarDeclEmpty $2 $4 }   -- var x: Int;
-
-
-
 -- Lista de declarações no corpo da função
-Stmts : Stmt Stmts                 { $1 : $2 }
+Stmts : Stmt Stmts              { $1 : $2 }
       |                            { [] }
 
 
 
 -- Separa o statement de If para analisar separadamente.
-Stmt : IfStmt                      { $1 }
+Stmt : Declare                     { $1 }
+     | IfStmt                      { $1 }
+     | WhileStmt                   { $1 }
      | OtherStmt                   { $1 }
+
+
+
+-- Cinco formas de declarações:
+-- 1. Valor imutável (val) com inicialização
+-- 2. Valor imutável (val) com inicialização sem tipo explícito
+-- 3. Variável mutável (var) com inicialização
+-- 4. Variável mutável (var) com inicialização sem tipo explícito
+-- 5. Variável mutável (var) sem inicialização
+-- Repetição para caso o ';' não seja colocado
+Declare : val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 5;
+        | val id '=' Expr ';'           { ValDecl $2 UnitType $4 } -- val x = 5;
+        | var id ':' Type '=' Expr ';'  { VarDecl $2 $4 $6 }    -- var x: Int = 5;
+        | var id '=' Expr ';'           { VarDecl $2 UnitType $4 } -- var x = 5;
+        | var id ':' Type ';'           { VarDeclEmpty $2 $4 }   -- var x: Int;
+        -- | val id ':' Type '=' Expr      { ValDecl $2 $4 $6 }    -- val x: Int = 5
+        -- | val id '=' Expr               { ValDecl $2 UnitType $4 } -- val x = 5
+        -- | var id ':' Type '=' Expr      { VarDecl $2 $4 $6 }    -- var x: Int = 5
+        -- | var id '=' Expr               { VarDecl $2 UnitType $4 } -- var x = 5
+        -- | var id ':' Type               { VarDeclEmpty $2 $4 }   -- var x: Int
+        
 
 
 
@@ -184,11 +190,15 @@ IfStmt : if '(' Expr ')' '{' Stmts '}' else '{' Stmts '}'  { IfStmt $3 $6 $10 }
 
 
 
+WhileStmt : while '(' Expr ')' '{' Stmts '}'               { WhileStmt $3 $6 }
+
+
+
 -- Statements sem ser If
 OtherStmt : Expr ';'                                       { ExprStmt $1 }
+        --   | Expr                                  { ExprStmt $1 }
           | return Expr ';'                                { ReturnStmt $2 }
-          | while '(' Expr ')' '{' Stmts '}'               { WhileStmt $3 $6 }
-          | for '(' id in Expr ')' '{' Stmts '}'           { ForStmt $3 $5 $8 }
+        --   | return Expr                            { ReturnStmt $2 }
 
 
 
@@ -280,6 +290,9 @@ Primary : int                               { IntLit $1 }
         | id                                { Id $1 }
         | '(' Expr ')'                      { $2 }
         | FunctionCall                      { $1 }
+        | readln '(' ')'                    { ReadLn }
+        | print '(' Expr ')' ';'            { PrintStmt $3 }
+        -- | print '(' Expr ')'                { PrintStmt $3 }
 
 
 
@@ -295,5 +308,3 @@ parseError toks = Left $ "Parse error at token(s): " ++ show toks
 parse :: [Token] -> Either String AST
 parse = parser
 }
-
-

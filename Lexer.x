@@ -13,13 +13,14 @@ module Lexer
 $digit = 0-9
 $alpha = [a-zA-Z]
 $alphanum = [a-zA-Z0-9]
-
+$whitespace = [\t\f\v]
 
 
 -- Mapeamento de caracteres para Tokens
 tokens :-
-  $white+                       ;
-  "//".*                        ; -- Single-line comment
+$white+                      ;
+  $whitespace+                 ;
+  "//".*                       ; -- Single-line comment
   "/*"(.|\n)*"*/"              ; -- Multi-line comment
   
   -- Delimiters
@@ -33,6 +34,7 @@ tokens :-
   "."                           { \_ -> DOT }
   ";"                           { \_ -> SEMICOLON }
   ":"                           { \_ -> COLON }
+  -- \r?\n                         { \_ -> NEXTLINE }
   
   -- Operators
   "+="                          { \_ -> PLUS_ASSIGN }
@@ -65,9 +67,9 @@ tokens :-
   if                            { \_ -> IF }
   else                          { \_ -> ELSE }
   while                         { \_ -> WHILE }
-  for                           { \_ -> FOR }
-  in                            { \_ -> IN }
   return                        { \_ -> RETURN }
+  print                         { \_ -> PRINT }
+  readln                        { \_ -> READLN }
   
   -- Types
   Int                           { \_ -> INT }
@@ -98,7 +100,7 @@ data Token
 
   -- Delimiters
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
-  | COMMA | DOT | SEMICOLON | COLON
+  | COMMA | DOT | SEMICOLON | COLON -- | NEXTLINE
 
   -- Assignment operators
   | ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN
@@ -112,7 +114,7 @@ data Token
   | AND | OR | NOT
 
   -- Keywords
-  | FUN | VAL | VAR | IF | ELSE | WHILE | FOR | IN | RETURN
+  | FUN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
 
   -- Types
   | INT | FLOAT | DOUBLE | BOOLEAN | STRING
