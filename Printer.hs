@@ -14,13 +14,15 @@ prettyPrintAST (Program fns) = unlines $ map showFunction fns
 
 -- Funções auxiliares de formatação
 showFunction :: Function -> String
-showFunction (Function name params retType stmts) =
+showFunction (Function name params retType cmds) =
     "Function: " ++ name ++ "\n" ++
     "  Parameters: " ++ showParams params ++ "\n" ++
     "  Return Type: " ++ showType retType ++ "\n" ++
-    -- "  Declarations: " ++ showDecls decls ++ "\n" ++
-    "  Statements: " ++ showStmts stmts ++ "\n"
-
+    "  Commands: " ++ showCmds cmds ++ "\n"
+showFunction (Main params cmds) =
+    "Function: Main \n"  ++
+    "  Parameters: " ++ showParams params ++ "\n" ++
+    "  Commands: " ++ showCmds cmds ++ "\n"
 
 
 -- Formatação de parâmetros
@@ -57,6 +59,6 @@ showType UnitType = "Unit"
 
 
 -- Formatação de statements
-showStmts :: [Stmt] -> String
-showStmts [] = "none"
-showStmts ss = unlines $ map (("    " ++) . show) ss
+showCmds :: [Cmd] -> String
+showCmds [] = "none"
+showCmds ss = unlines $ map (("    " ++) . show) ss

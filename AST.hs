@@ -5,8 +5,11 @@ module AST
     , Function(..)
     , Type(..)
     , Param(..)
-    -- , Declare(..)
-    , Stmt(..)
+    , Cmd(..)
+    , Declare(..)
+    , Assignment(..)
+    , If(..)
+    , Return(..)
     , Expr(..)
     , BinOperator(..)
     , UnOperator(..)
@@ -37,23 +40,14 @@ data Program = Program [Function]
         "greet"                                -- name
         [Param "name" StringType]              -- parameters
         StringType                             -- return type
-        --!!!!!! NOT ANYMORE
-        [ValDecl                               -- declarations
-            "message" 
-            StringType 
-            (BinOp 
-                (StringLit "Hello, ") 
-                Add 
-                (Id "name")
-            )
-        ]
-        --!!!!!! UNTIL HERE
         [ReturnStmt (Id "message")]
 -}  
-data Function = Function String [Param] Type [Stmt]
-    deriving (Show, Eq)
 
 
+
+data Function = Function String [Param] Type [Cmd]
+              | Main [Param] [Cmd]
+              deriving (Show, Eq)
 
 -- Tipos de variáveis em Kotlin. UnitType é void ( Se quiser trocar o nome fica a vontade, mas tem q mudar em mais lugares )
 data Type 
@@ -71,29 +65,56 @@ data Type
 data Param = Param String Type
     deriving (Show, Eq)
 
-
+-- Tipos de Statements (Declarações)
+data Cmd 
+    = DeclareCmd Declare              -- Declaração de variavel (var x = 5)
+    | AssignCmd Assignment              -- Atribuição de valor   
+    | IfCmd If        -- Declaração If com condição, bloco then e bloco else opcional  
+    | WhileCmd Expr [Cmd]            -- Loop While com condição e corpo     
+    | ReturnCmd Return                  -- Declaração de retorno (return x)  
+    | ExprCmd Expr                    -- Declaração de expressão (x = 5)
+    deriving (Show, Eq)
 
 -- Exemplo de representação: ValDecl "pi" DoubleType (DoubleLit 3.14159) 
--- data Declare 
---     = ValDecl String Type Expr  -- Ex: val pi: Double = 3.14159  
---     | VarDecl String Type Expr  -- Ex: var counter: Int = 0  
---     | VarDeclEmpty String Type  -- Ex: var name: String  
---     deriving (Show, Eq)
-
-
-
--- Tipos de Statements (Declarações)
-data Stmt 
-    = ExprStmt Expr                    -- Declaração de expressão (x = 5;)
-    | ReturnStmt Expr                  -- Declaração de retorno (return x;)
-    | IfStmt Expr [Stmt] [Stmt]        -- Declaração If com condição, bloco then e bloco else opcional
-    | WhileStmt Expr [Stmt]            -- Loop While com condição e corpo
-    | ValDecl String Type Expr         -- Ex: val pi: Double = 3.14159  
-    | VarDecl String Type Expr         -- Ex: var counter: Int = 0  
-    | VarDeclEmpty String Type         -- Ex: var name: String  
+data Declare 
+    = ValDecl String Type Expr  -- Ex: val pi: Double = 3.14159  
+    | VarDecl String Type Expr  -- Ex: var counter: Int = 0  
+    | VarDeclEmpty String Type  -- Ex: var name: String  
     deriving (Show, Eq)
 
 
+data Assignment
+    = Assign String Expr        -- Atribuição simples
+    | CompoundAssign String BinOperator Expr  -- Atribuições compostas (+=, -=, etc.)  
+    deriving (Show, Eq)   
+
+data If
+    = If Expr [Cmd]
+    | ElseIf Expr [Cmd]
+    | Else [Cmd]
+    deriving (Show, Eq)
+
+data Return = Return Expr       -- Ex: Return x;
+            | ReturnEmpty       -- Ex: Return;
+            deriving (Show, Eq)
+
+-- Tipos de Expressão
+data Expr 
+    = IntLit Int                    -- Literal inteiro
+    | DoubleLit Double              -- Literal double
+    | BoolLit Bool                  -- Literal booleano
+    | StringLit String              -- Literal string
+    | Id String                     -- Referência a variável
+    | BinOp Expr BinOperator Expr   -- Operações binárias
+    | UnOp UnOperator Expr          -- Operações unárias prefixas
+    | PostOp Expr UnOperator        -- Operações unárias pósfixas (para ++ e --)
+    | Call String [Expr]            -- Chamada de função
+    | ArrayAccess Expr Expr         -- Acesso a array com []
+    | MemberAccess Expr String      -- Acesso a membro com ponto (.)
+    | MethodAccess Expr String [Expr] -- Acesso a método com ponto (.)
+    | ReadLn                        -- Ler linha da entrada padrão
+    | Print Expr                -- Print da expressão fornecida
+    deriving (Show, Eq)
 
 -- Tipos de operadores binários
 data BinOperator 
@@ -106,8 +127,6 @@ data BinOperator
     | Dot                                   -- Acesso a membro (.)
     deriving (Show, Eq)
 
-
-
 -- Tipos de operadores unários
 data UnOperator 
     = Neg                    -- Negação numérica (-)
@@ -116,39 +135,15 @@ data UnOperator
     | PostInc | PostDec      -- Incremento/decremento pósfixo (x++, x--)
     deriving (Show, Eq)
 
-
-
--- Tipos de Expressão
-data Expr 
-    = IntLit Int                    -- Literal inteiro
-    | DoubleLit Double              -- Literal double
-    | BoolLit Bool                  -- Literal booleano
-    | StringLit String              -- Literal string
-    | Id String                     -- Referência a variável
-    | BinOp Expr BinOperator Expr   -- Operações binárias
-    | UnOp UnOperator Expr          -- Operações unárias prefixas
-    | PostOp Expr UnOperator        -- Operações unárias pósfixas (para ++ e --)
-    | Assignment String Expr        -- Atribuição simples
-    | CompoundAssign String BinOperator Expr  -- Atribuições compostas (+=, -=, etc.)
-    | Call String [Expr]            -- Chamada de função
-    | ArrayAccess Expr Expr         -- Acesso a array com []
-    | MemberAccess Expr String      -- Acesso a membro com ponto (.)
-    | ReadLn                        -- Ler linha da entrada padrão
-    | PrintStmt Expr                -- Print da expressão fornecida
-    deriving (Show, Eq)
-
-
-
 -- Printar a AST (Abstract Syntatic Tree)
 prettyPrint :: AST -> String
 prettyPrint (Program fns) = "Program:\n" ++ concatMap printFunction fns
   where
-    printFunction (Function name params retType stmts) =
+    printFunction (Function name params retType cmds) =
         "Function " ++ name ++ ":\n" ++
         "  Parameters: " ++ show params ++ "\n" ++
         "  Return Type: " ++ show retType ++ "\n" ++
-        -- "  Declarations: " ++ show decls ++ "\n" ++
-        "  Statements: " ++ show stmts ++ "\n"
+        "  Commands: " ++ show cmds ++ "\n"
 
 
 

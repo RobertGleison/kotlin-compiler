@@ -62,6 +62,7 @@ $white+                      ;
   
   -- Keywords and special operators
   fun                           { \_ -> FUN }
+  main                          { \_ -> MAIN }
   val                           { \_ -> VAL }
   var                           { \_ -> VAR }
   if                            { \_ -> IF }
@@ -100,7 +101,7 @@ data Token
 
   -- Delimiters
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
-  | COMMA | DOT | SEMICOLON | COLON -- | NEXTLINE
+  | COMMA | DOT | SEMICOLON | COLON
 
   -- Assignment operators
   | ASSIGN | PLUS_ASSIGN | MINUS_ASSIGN | TIMES_ASSIGN | DIV_ASSIGN | MOD_ASSIGN
@@ -114,7 +115,7 @@ data Token
   | AND | OR | NOT
 
   -- Keywords
-  | FUN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
+  | FUN | MAIN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
 
   -- Types
   | INT | FLOAT | DOUBLE | BOOLEAN | STRING
