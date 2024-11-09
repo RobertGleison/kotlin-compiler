@@ -156,12 +156,13 @@ Stmts : Stmt Stmts              { $1 : $2 }
 
 
 -- Separa o statement de If para analisar separadamente.
-Stmt : Declare                     { $1 }
+Stmt : Declare OptSemiColon        { $1 }
      | IfStmt                      { $1 }
      | WhileStmt                   { $1 }
-     | OtherStmt                   { $1 }
+     | OtherStmt OptSemiColon                  { $1 }
 
-
+OptSemiColon : ';'                 {}
+             |                     {}
 
 -- Cinco formas de declarações:
 -- 1. Valor imutável (val) com inicialização
@@ -170,16 +171,16 @@ Stmt : Declare                     { $1 }
 -- 4. Variável mutável (var) com inicialização sem tipo explícito
 -- 5. Variável mutável (var) sem inicialização
 -- Repetição para caso o ';' não seja colocado
-Declare : val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 5;
-        | val id '=' Expr ';'           { ValDecl $2 UnitType $4 } -- val x = 5;
-        | var id ':' Type '=' Expr ';'  { VarDecl $2 $4 $6 }    -- var x: Int = 5;
-        | var id '=' Expr ';'           { VarDecl $2 UnitType $4 } -- var x = 5;
-        | var id ':' Type ';'           { VarDeclEmpty $2 $4 }   -- var x: Int;
-        -- | val id ':' Type '=' Expr      { ValDecl $2 $4 $6 }    -- val x: Int = 5
-        -- | val id '=' Expr               { ValDecl $2 UnitType $4 } -- val x = 5
-        -- | var id ':' Type '=' Expr      { VarDecl $2 $4 $6 }    -- var x: Int = 5
-        -- | var id '=' Expr               { VarDecl $2 UnitType $4 } -- var x = 5
-        -- | var id ':' Type               { VarDeclEmpty $2 $4 }   -- var x: Int
+Declare : val id ':' Type '=' Expr      { ValDecl $2 $4 $6 }    -- val x: Int = 5;
+        -- | val id ':' Type '=' Expr ';'  { ValDecl $2 $4 $6 }    -- val x: Int = 5
+        -- | val id '=' Expr ';'           { ValDecl $2 UnitType $4 } -- val x = 5;
+        | val id '=' Expr               { ValDecl $2 UnitType $4 } -- val x = 5
+        -- | var id ':' Type '=' Expr ';'  { VarDecl $2 $4 $6 }    -- var x: Int = 5;
+        | var id ':' Type '=' Expr      { VarDecl $2 $4 $6 }    -- var x: Int = 5
+        -- | var id '=' Expr ';'           { VarDecl $2 UnitType $4 } -- var x = 5;
+        | var id '=' Expr               { VarDecl $2 UnitType $4 } -- var x = 5
+        -- | var id ':' Type ';'           { VarDeclEmpty $2 $4 }   -- var x: Int;
+        | var id ':' Type               { VarDeclEmpty $2 $4 }   -- var x: Int
         
 
 
@@ -195,9 +196,9 @@ WhileStmt : while '(' Expr ')' '{' Stmts '}'               { WhileStmt $3 $6 }
 
 
 -- Statements sem ser If
-OtherStmt : Expr ';'                                       { ExprStmt $1 }
+OtherStmt : Expr                                       { ExprStmt $1 }
         --   | Expr                                  { ExprStmt $1 }
-          | return Expr ';'                                { ReturnStmt $2 }
+          | return Expr                                { ReturnStmt $2 }
         --   | return Expr                            { ReturnStmt $2 }
 
 
@@ -211,18 +212,17 @@ ExprList : Expr ',' ExprList        { $1 : $3 }
 
 -- Expressões podem ser atribuições ou expressões lógicas
 Expr : AssignExpr                { $1 }
-     | LogicalExpr               { $1 }              
+     | LogicalExpr               { $1 }
 
 
 
 -- Expressões de atribuição (simples e compostas)
-AssignExpr : id '=' LogicalExpr              { Assignment $1 $3 }
-           | id '+=' LogicalExpr             { CompoundAssign $1 Add $3 }
-           | id '-=' LogicalExpr             { CompoundAssign $1 Sub $3 }
-           | id '*=' LogicalExpr             { CompoundAssign $1 Mul $3 }
-           | id '/=' LogicalExpr             { CompoundAssign $1 Div $3 }
-           | id '%=' LogicalExpr             { CompoundAssign $1 Mod $3 }
-           | LogicalExpr                     { $1 }
+AssignExpr : id '=' LogicalExpr          { Assignment $1 $3 }
+           | id '+=' AddExpr             { CompoundAssign $1 Add $3 }
+           | id '-=' AddExpr             { CompoundAssign $1 Sub $3 }
+           | id '*=' AddExpr             { CompoundAssign $1 Mul $3 }
+           | id '/=' AddExpr             { CompoundAssign $1 Div $3 }
+           | id '%=' AddExpr             { CompoundAssign $1 Mod $3 }
 
 
 
@@ -250,22 +250,22 @@ CompareExpr : CompareExpr '==' AddExpr      { BinOp $1 Eq $3 }
 
 
 -- Expressões de adição e subtração
-AddExpr : AddExpr '+' Term                  { BinOp $1 Add $3 }
-        | AddExpr '-' Term                  { BinOp $1 Sub $3 }
+AddExpr : AddExpr '+' AddExpr                  { BinOp $1 Add $3 }
+        | AddExpr '-' AddExpr                  { BinOp $1 Sub $3 }
         | Term                                   { $1 }
 
 
 
 -- Expressões de multiplicação, divisão e módulo
-Term : Term '*' UnaryExpr                   { BinOp $1 Mul $3 }
-     | Term '/' UnaryExpr                   { BinOp $1 Div $3 }
-     | Term '%' UnaryExpr                   { BinOp $1 Mod $3 }
+Term : Term '*' Term                   { BinOp $1 Mul $3 }
+     | Term '/' Term                   { BinOp $1 Div $3 }
+     | Term '%' Term                   { BinOp $1 Mod $3 }
      | UnaryExpr                           { $1 }
 
 
 
 -- Expressões unárias (prefixo)
-UnaryExpr : '!' UnaryExpr                   { UnOp Not $2 }
+UnaryExpr : '!' UnaryExpr                   { UnOp Not $2 }             -- ! doesn't make too much sense
           | '-' UnaryExpr                   { UnOp Neg $2 }
           | '++' PostfixExpr                { UnOp PreInc $2 }
           | '--' PostfixExpr                { UnOp PreDec $2 }
@@ -291,8 +291,7 @@ Primary : int                               { IntLit $1 }
         | '(' Expr ')'                      { $2 }
         | FunctionCall                      { $1 }
         | readln '(' ')'                    { ReadLn }
-        | print '(' Expr ')' ';'            { PrintStmt $3 }
-        -- | print '(' Expr ')'                { PrintStmt $3 }
+        | print '(' Expr ')'                { PrintStmt $3 }
 
 
 
