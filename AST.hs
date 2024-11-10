@@ -54,6 +54,7 @@ data Type
     = IntType 
     | DoubleType 
     | BooleanType 
+    | CharType
     | StringType 
     | FloatType 
     | UnitType
@@ -103,6 +104,7 @@ data Expr
     = IntLit Int                    -- Literal inteiro
     | DoubleLit Double              -- Literal double
     | BoolLit Bool                  -- Literal booleano
+    | CharLit Char                  -- Literal char
     | StringLit String              -- Literal string
     | Id String                     -- Referência a variável
     | BinOp Expr BinOperator Expr   -- Operações binárias

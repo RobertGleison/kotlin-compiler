@@ -74,8 +74,8 @@ $white+                      ;
   
   -- Types
   Int                           { \_ -> INT }
-  Float                         { \_ -> FLOAT }
   Double                        { \_ -> DOUBLE }
+  Char                          { \_ -> CHAR }
   Boolean                       { \_ -> BOOLEAN }
   String                        { \_ -> STRING }
   
@@ -83,6 +83,7 @@ $white+                      ;
   $digit+                       { \s -> INTEGER (read s) }
   $digit+\.$digit+              { \s -> DOUBLE_LIT (read s) }
   \"([^\"]|\\.)*\"              { \s -> STRING_LIT (init (tail s)) }
+  \'$alpha\'                        { \s -> CHAR_LIT (read s) }
   true                          { \_ -> BOOLEAN_LIT True }
   false                         { \_ -> BOOLEAN_LIT False }
   
@@ -97,6 +98,7 @@ data Token
   | INTEGER Int
   | DOUBLE_LIT Double
   | STRING_LIT String
+  | CHAR_LIT Char
   | BOOLEAN_LIT Bool
 
   -- Delimiters
@@ -118,7 +120,7 @@ data Token
   | FUN | MAIN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
 
   -- Types
-  | INT | FLOAT | DOUBLE | BOOLEAN | STRING
+  | INT | DOUBLE | CHAR | BOOLEAN | STRING
   deriving (Eq, Show)
 
 
