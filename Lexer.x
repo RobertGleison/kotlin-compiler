@@ -17,10 +17,7 @@ tokens :-
   ")"                           { \_ -> RPAREN }
   "{"                           { \_ -> LBRACE }
   "}"                           { \_ -> RBRACE }
-  "["                           { \_ -> LBRACK }
-  "]"                           { \_ -> RBRACK }
   ","                           { \_ -> COMMA }
-  "."                           { \_ -> DOT }
   ";"                           { \_ -> SEMICOLON }
   ":"                           { \_ -> COLON }
   
@@ -54,35 +51,26 @@ tokens :-
   
   -- Types
   Int                           { \_ -> INT }
-  Double                        { \_ -> DOUBLE }
-  Char                          { \_ -> CHAR }
   Boolean                       { \_ -> BOOLEAN }
-  String                        { \_ -> STRING }
   
   -- Literals
-  [0-9]+                        { \s -> INTEGER (read s) }
-  [0-9]+\.[0-9]+               { \s -> DOUBLE_LIT (read s) }
-  \"([^\"\\]|\\.)*\"           { \s -> STRING_LIT (init (tail s)) }  
-  \'(\\.|[^\'\\])\'            { \s -> CHAR_LIT (read s) }           
+  [0-9]+                        { \s -> INTEGER (read s) } 
   true                          { \_ -> BOOLEAN_LIT True }
   false                         { \_ -> BOOLEAN_LIT False }
   
   -- Identifiers
-  [a-zA-Z]([a-zA-Z0-9]|_)*     { \s -> ID s }
+  [a-zA-Z]|_([a-zA-Z0-9]|_)*     { \s -> ID s }
 
 {
 data Token
   = ID String
 
   | INTEGER Int
-  | DOUBLE_LIT Double
-  | STRING_LIT String
-  | CHAR_LIT Char
   | BOOLEAN_LIT Bool
 
   -- Delimiters
-  | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
-  | COMMA | DOT | SEMICOLON | COLON
+  | LPAREN | RPAREN | LBRACE | RBRACE
+  | COMMA | SEMICOLON | COLON
   
   -- Arithmetic and comparison operators
   | PLUS | MINUS | TIMES | DIVIDE | MOD | ASSIGN
@@ -95,7 +83,7 @@ data Token
   | FUN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
 
   -- Types
-  | INT | DOUBLE | CHAR | BOOLEAN | STRING
+  | INT | BOOLEAN
   deriving (Eq, Show)
 
 lexer :: String -> [Token]

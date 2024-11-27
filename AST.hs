@@ -51,12 +51,8 @@ data Function = Function String [Param] Type [Cmd]
 
 -- Tipos de variáveis em Kotlin. UnitType é void ( Se quiser trocar o nome fica a vontade, mas tem q mudar em mais lugares )
 data Type 
-    = IntType 
-    | DoubleType 
-    | BooleanType 
-    | CharType
-    | StringType 
-    | FloatType 
+    = IntType
+    | BooleanType
     | UnitType
     deriving (Show, Eq)
 
@@ -86,34 +82,22 @@ data Declare
 
 data Assignment
     = Assign String Expr        -- Atribuição simples
-    | CompoundAssign String BinOperator Expr  -- Atribuições compostas (+=, -=, etc.)  
     deriving (Show, Eq)   
 
 data If
-    = If Expr [Cmd]
-    | ElseIf Expr [Cmd]
-    | Else [Cmd]
+    = If Expr [Cmd] [Cmd]       -- If Then Else
     deriving (Show, Eq)
 
-data Return = Return Expr       -- Ex: Return x;
-            | ReturnEmpty       -- Ex: Return;
+data Return = ReturnEmpty       -- Ex: Return;
             deriving (Show, Eq)
 
 -- Tipos de Expressão
 data Expr 
     = IntLit Int                    -- Literal inteiro
-    | DoubleLit Double              -- Literal double
     | BoolLit Bool                  -- Literal booleano
-    | CharLit Char                  -- Literal char
-    | StringLit String              -- Literal string
     | Id String                     -- Referência a variável
     | BinOp Expr BinOperator Expr   -- Operações binárias
     | UnOp UnOperator Expr          -- Operações unárias prefixas
-    | PostOp Expr UnOperator        -- Operações unárias pósfixas (para ++ e --)
-    | Call String [Expr]            -- Chamada de função
-    | ArrayAccess Expr Expr         -- Acesso a array com []
-    | MemberAccess Expr String      -- Acesso a membro com ponto (.)
-    | MethodAccess Expr String [Expr] -- Acesso a método com ponto (.)
     | ReadLn                        -- Ler linha da entrada padrão
     | Print Expr                -- Print da expressão fornecida
     deriving (Show, Eq)
@@ -124,17 +108,12 @@ data BinOperator
     | And | Or                              -- Operadores lógicos (&&, ||)
     | Eq | Neq | Lt | Lte | Gt | Gte        -- Operadores de comparação (==, !=, <, <=, >, >=)
     | AssignOp                              -- Atribuição simples (=)
-    | PlusAssign | MinusAssign              -- Atribuição composta (+=, -=)
-    | TimesAssign | DivAssign | ModAssign   -- Atribuição composta (*=, /=, %=)
-    | Dot                                   -- Acesso a membro (.)
     deriving (Show, Eq)
 
 -- Tipos de operadores unários
 data UnOperator 
     = Neg                    -- Negação numérica (-)
     | Not                    -- Negação lógica (!)
-    | PreInc | PreDec        -- Incremento/decremento prefixo (++x, --x)
-    | PostInc | PostDec      -- Incremento/decremento pósfixo (x++, x--)
     deriving (Show, Eq)
 
 -- Printar a AST (Abstract Syntatic Tree)

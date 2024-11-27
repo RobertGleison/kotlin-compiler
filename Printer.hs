@@ -35,10 +35,7 @@ showParams ps = unlines $ map (\(Param name typ) -> "    " ++ name ++ ": " ++ sh
 -- Conversão de tipos para string
 showType :: Type -> String
 showType IntType = "Int"
-showType DoubleType = "Double"
 showType BooleanType = "Boolean"
-showType StringType = "String"
-showType FloatType = "Float"
 showType UnitType = "Unit"
 
 
