@@ -20,8 +20,8 @@ $whitespace = [\t\f\v]
 tokens :-
 $white+                      ;
   $whitespace+                 ;
-  "//".*                       ; -- Single-line comment
-  "/*"(.|\n)*"*/"              ; -- Multi-line comment
+  \/\/.*$                       ; -- Single-line comment
+  \/\*(.|\s)*\*\/               ; -- Multi-line comment
   
   -- Delimiters
   "("                           { \_ -> LPAREN }
