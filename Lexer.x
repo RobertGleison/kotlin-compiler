@@ -18,8 +18,7 @@ $whitespace = [\t\f\v]
 
 -- Mapeamento de caracteres para Tokens
 tokens :-
-$white+                      ;
-  $whitespace+                 ;
+  $white+                      ;
   \/\/.*$                       ; -- Single-line comment
   \/\*(.|\s)*\*\/               ; -- Multi-line comment
   
