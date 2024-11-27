@@ -10,7 +10,7 @@ module Lexer
 tokens :-
   $white+                       ;
   \/\/.*$                       ; -- Single-line comment
-  \/\*(.|\s)*?\*\/             ; -- Multi-line comment (made non-greedy with ?)
+  \/\*(.|\s)*\*\/             ; -- Multi-line comment 
   
   -- Delimiters
   "("                           { \_ -> LPAREN }
@@ -73,21 +73,27 @@ tokens :-
 {
 data Token
   = ID String
+
   | INTEGER Int
   | DOUBLE_LIT Double
   | STRING_LIT String
   | CHAR_LIT Char
   | BOOLEAN_LIT Bool
+
   -- Delimiters
   | LPAREN | RPAREN | LBRACE | RBRACE | LBRACK | RBRACK
   | COMMA | DOT | SEMICOLON | COLON
+  
   -- Arithmetic and comparison operators
   | PLUS | MINUS | TIMES | DIVIDE | MOD | ASSIGN
   | EQUAL | NEQ | LTHAN | LTE | GTHAN | GTE
+  
   -- Logical operators
   | AND | OR | NOT
+  
   -- Keywords
   | FUN | VAL | VAR | IF | ELSE | WHILE | RETURN | PRINT | READLN
+
   -- Types
   | INT | DOUBLE | CHAR | BOOLEAN | STRING
   deriving (Eq, Show)
