@@ -3,10 +3,10 @@ fun main() {
     var count = 0
     while (count < 5) {
         if (count % 2 == 0) {
-            print("Even: $count ")
+            print("Even: count ")
         } else {
-            print("Odd: $count ")
+            print("Odd: count ")
         }
-        count += 1
+        count = count + 1
     }
 }

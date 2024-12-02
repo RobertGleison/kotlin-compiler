@@ -28,7 +28,7 @@ processFile input = do
     let tokens = lexer input
     putStrLn "Tokens:"
     print tokens
-    
+    -- print "\nhere\n"
     -- Passo 2: Análise Sintática (converte tokens em AST)
     case parse tokens of
         Right ast -> do

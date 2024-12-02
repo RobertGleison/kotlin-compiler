@@ -95,11 +95,12 @@ data Return = ReturnEmpty       -- Ex: Return;
 data Expr 
     = IntLit Int                    -- Literal inteiro
     | BoolLit Bool                  -- Literal booleano
+    | StringLit String              -- Literal string
     | Id String                     -- Referência a variável
     | BinOp Expr BinOperator Expr   -- Operações binárias
     | UnOp UnOperator Expr          -- Operações unárias prefixas
     | ReadLn                        -- Ler linha da entrada padrão
-    | Print Expr                -- Print da expressão fornecida
+    | Print Expr                    -- Print da expressão fornecida
     deriving (Show, Eq)
 
 -- Tipos de operadores binários

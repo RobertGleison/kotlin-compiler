@@ -25,6 +25,7 @@ import AST
   id              { ID $$ }
   int             { INTEGER $$ }
   bool            { BOOLEAN_LIT $$ }
+  string          { STRING_LIT $$ }
   
   -- Delimiters
   '('             { LPAREN }
@@ -172,6 +173,7 @@ Readln  : readln '(' ')'                                            { ReadLn }  
         
 Term    : int                                                       { IntLit $1 }           -- Inteiros literais
         | bool                                                      { BoolLit $1 }          -- Booleanos literais
+        | string                                                    { StringLit $1 }        -- String literal
         | id                                                        { Id $1 }               -- Variaveis                --! FLAG
 
 -- Usa como input uma lista de Tokens e retorna uma AST se não houver erro. Se houver erro retorna uma string de mensagem contendo o erro.

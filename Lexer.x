@@ -10,7 +10,7 @@ module Lexer
 tokens :-
   $white+                       ;
   \/\/.*$                       ; -- Single-line comment
-  \/\*(.|\s)*\*\/             ; -- Multi-line comment 
+  \/\*(.|\s)*\*\/               ; -- Multi-line comment 
   
   -- Delimiters
   "("                           { \_ -> LPAREN }
@@ -55,11 +55,12 @@ tokens :-
   
   -- Literals
   [0-9]+                        { \s -> INTEGER (read s) } 
+  \"([^\"\\]|\\.)*\"            { \s -> STRING_LIT (init (tail s)) }
   true                          { \_ -> BOOLEAN_LIT True }
   false                         { \_ -> BOOLEAN_LIT False }
   
   -- Identifiers
-  [a-zA-Z]|_([a-zA-Z0-9]|_)*     { \s -> ID s }
+  ([a-zA-Z]|_)([a-zA-Z0-9]|_)*     { \s -> ID s }
 
 {
 data Token
@@ -67,6 +68,7 @@ data Token
 
   | INTEGER Int
   | BOOLEAN_LIT Bool
+  | STRING_LIT String
 
   -- Delimiters
   | LPAREN | RPAREN | LBRACE | RBRACE
