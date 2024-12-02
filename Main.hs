@@ -10,16 +10,14 @@ import Parser (parse)
 import AST
 import Printer
 import Printer (prettyPrintAST)
-
-
+import SemanticAnalyzer (checkProgram)
 
 -- Tipo para tratamento de erros do compilador
 data CompilerError 
-    = LexerError String    -- Erro durante análise léxica
-    | ParserError String   -- Erro durante análise sintática
+    = LexerError String     -- Erro durante análise léxica
+    | ParserError String    -- Erro durante análise sintática
+    | SemanticError String  -- Erro durante análise semântica
     deriving Show
-
-
 
 -- Pipeline principal de processamento do arquivo
 processFile :: String -> IO ()
@@ -28,18 +26,27 @@ processFile input = do
     let tokens = lexer input
     putStrLn "Tokens:"
     print tokens
-    -- print "\nhere\n"
+    
     -- Passo 2: Análise Sintática (converte tokens em AST)
     case parse tokens of
         Right ast -> do
             putStrLn "\nAbstract Syntax Tree:"
             putStrLn $ prettyPrintAST ast
             
+            -- Passo 3: Análise Semântica (verifica tipos e escopo)
+            putStrLn "\nPerforming Semantic Analysis..."
+            case checkProgram ast of
+                Right _ -> do
+                    putStrLn "Semantic analysis completed successfully."
+                    putStrLn "No type errors found."
+                
+                Left err -> do
+                    putStrLn $ "Semantic error: " ++ err
+                    exitFailure
+            
         Left err -> do
             putStrLn $ "Parser error: " ++ err
             exitFailure
-
-
 
 -- Função para testes rápidos de input
 testInput :: String -> IO ()
@@ -49,7 +56,17 @@ testInput input = do
     putStrLn "\nProcessing..."
     processFile input
 
-
+-- Função para exibir mensagem de erro e sair
+handleCompilerError :: CompilerError -> IO ()
+handleCompilerError (LexerError msg) = do
+    putStrLn $ "Lexical Error: " ++ msg
+    exitFailure
+handleCompilerError (ParserError msg) = do
+    putStrLn $ "Parser Error: " ++ msg
+    exitFailure
+handleCompilerError (SemanticError msg) = do
+    putStrLn $ "Semantic Error: " ++ msg
+    exitFailure
 
 -- Função principal do programa
 main :: IO ()
