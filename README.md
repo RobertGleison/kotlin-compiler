@@ -39,18 +39,17 @@ happy --version
 
 ## 2. Build and Run
 
-1. Generate the lexical analyzer from Alex specification:
+1. To build and compile all the files:
 ```
-alex Lexer.x -o Lexer.hs
-```
-
-2. Generate the parser generator from Happy specification: (Not working yet)
-```
-happy Parser.y -o Parser.hs
+make build
 ```
 
-3. Run the compiler with example files:
+2. To run all the test files:
 ```
-ghc Main.hs -o Main
-./Main examples/example1.kt
+make run
+```
+
+3. To erase all compiled files:
+```
+make clear
 ```
