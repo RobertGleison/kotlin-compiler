@@ -1,5 +1,4 @@
 module Main where
-
 import qualified Data.List as L
 import System.Environment
 import System.IO
@@ -11,12 +10,17 @@ import AST
 import Printer
 import Printer (prettyPrintAST)
 import SemanticAnalyzer (checkProgram)
+import IR (IRInstr, IRProg)
+import IRTranslator (translateProgram)
+import MIPSGenerator (generateAssembly)
 
 -- Tipo para tratamento de erros do compilador
 data CompilerError 
     = LexerError String     -- Erro durante análise léxica
     | ParserError String    -- Erro durante análise sintática
     | SemanticError String  -- Erro durante análise semântica
+    | IRError String        -- Erro durante geração de IR
+    | MIPSError String      -- Erro durante geração de MIPS
     deriving Show
 
 -- Pipeline principal de processamento do arquivo
@@ -38,7 +42,23 @@ processFile input = do
             case checkProgram ast of
                 Right _ -> do
                     putStrLn "Semantic analysis completed successfully."
-                    putStrLn "No type errors found."
+                    
+                    -- Passo 4: Geração de IR
+                    putStrLn "\nGenerating IR code..."
+                    let irCode = translateProgram ast
+                    putStrLn "IR Code generated:"
+                    print irCode
+                    
+                    -- Passo 5: Geração de código MIPS
+                    putStrLn "\nGenerating MIPS assembly..."
+                    let mipsCode = generateAssembly irCode
+                    putStrLn "MIPS Code generated:"
+                    putStrLn mipsCode
+                    
+                    -- Salvar código MIPS em arquivo
+                    let outputFile = "output.asm"
+                    writeFile outputFile mipsCode
+                    putStrLn $ "\nMIPS assembly written to " ++ outputFile
                 
                 Left err -> do
                     putStrLn $ "Semantic error: " ++ err
@@ -66,6 +86,12 @@ handleCompilerError (ParserError msg) = do
     exitFailure
 handleCompilerError (SemanticError msg) = do
     putStrLn $ "Semantic Error: " ++ msg
+    exitFailure
+handleCompilerError (IRError msg) = do
+    putStrLn $ "IR Generation Error: " ++ msg
+    exitFailure
+handleCompilerError (MIPSError msg) = do
+    putStrLn $ "MIPS Generation Error: " ++ msg
     exitFailure
 
 -- Função principal do programa
