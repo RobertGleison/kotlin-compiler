@@ -67,7 +67,7 @@ checkFunction funEnv (Main params body) = do                                    
 --       val x: Int = 5      // cmd 1
 --       val y: Int = x + 1  // cmd 2
 --       print(y)            // cmd 3
-}
+-- }
 checkCmds :: FunEnv -> TypeEnv -> [Cmd] -> Either String Type           -- Gets the function map, the variable map, the cmd entry and return a error String or a Type  
 checkCmds _ _ [] = Right UnitType                                       -- If no commands to check, return void
 checkCmds funEnv env (cmd:cmds) = do                                    -- For each command
