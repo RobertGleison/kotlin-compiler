@@ -53,8 +53,8 @@ checkMain functions =
     where isMain (Main _ _) = True                              -- Returns true if its a main function
 
 
-Ex: fun main(x: Int, y: Boolean) { body... } return  "x" -> IntType, "y" -> BooleanType
 -- Type check a single function
+-- Ex: fun main(x: Int, y: Boolean) { body... } return  "x" -> IntType, "y" -> BooleanType
 checkFunction :: FunEnv -> Function -> Either String Type                           -- Gets a map of functions, a map of variables, a function and return a Error String or a Type
 checkFunction funEnv (Main params body) = do                                        -- Extracts from function params and body
     let env = Map.fromList [(name, paramType) | Param name paramType <- params]     -- Puts into Map the name and type of each parameter
