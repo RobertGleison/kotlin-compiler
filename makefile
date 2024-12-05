@@ -1,6 +1,6 @@
 build: src/Lexer.hs src/Parser.hs
 	@echo "Building compiler..."
-	cd src && ghc Main.hs -o Main
+	cd src && ghc Main.hs IR.hs IRTranslator.hs MIPSGenerator.hs -o Main
 
 src/Lexer.hs: src/Lexer.x
 	@echo "Generating lexer..."
@@ -13,7 +13,8 @@ src/Parser.hs: src/Parser.y
 clean:
 	@echo "Cleaning generated files..."
 	cd src && rm -f *.hi *.o Lexer.hs Parser.hs Parser.info
-	rm -f Main
+	cd src && rm -f IR.hi IR.o IRTranslator.hi IRTranslator.o MIPSGenerator.hi MIPSGenerator.o
+	rm -f Main output.asm
 
 run: build
 	@echo "\nRunning all test examples..."
@@ -39,6 +40,5 @@ run: build
 	cd src && ./Main ../examples/example5.kt || true
 	@echo "------------------------"
 	@echo "\nAll tests completed.\n"
-
 
 .PHONY: build clean run
