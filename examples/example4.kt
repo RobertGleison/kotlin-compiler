@@ -1,16 +1,16 @@
 // Example 4: Combining various elements
 fun main() {
     print("Enter a number: ")
-    val num = readln().toInt()
-    var factorial = 1
+    val num: Int = 3
+    var factorial: Int = 1
     
     if (num < 0) {
         print("Factorial is not defined for negative numbers.")
     } else {
-        var i = 1
+        var i: Int = 1
         while (i <= num) {
-            factorial *= i
-            i += 1
+            factorial = i * i
+            i = i + 1
         }
         print("Factorial of $num is $factorial")
     }

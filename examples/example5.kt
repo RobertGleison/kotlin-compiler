@@ -1,7 +1,7 @@
 // Example 5: if-else with boolean expressions
 fun main() {
-    val a = true
-    val b = false
+    val a: Boolean = true
+    val b: Boolean = false
     
     if (a && b) {
         print("Both a and b are true")
