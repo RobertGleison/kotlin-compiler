@@ -176,4 +176,4 @@ translateExpr (Print e) state =
     in (resultTemp, code ++ [CALL resultTemp "print" [temp]], state2)
 translateExpr ReadLn state =
     let (temp, state1) = newTemp state
-    in (temp, [CALL temp "readln" []], state1)
+    in (temp, [CALL temp "scan" []], state1)
