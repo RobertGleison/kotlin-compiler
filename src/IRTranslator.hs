@@ -4,11 +4,13 @@ import qualified Data.Map as Map
 import AST
 import IR
 
--- State for generating unique temporaries and labels
+type StringTemp = String
+
 data TransState = TransState 
-    { tempCount :: Int      -- Counter for generating unique temporary variables
-    , labelCount :: Int     -- Counter for generating unique labels
-    , varEnv :: Map.Map String Temp  -- Maps variable names to temporary registers
+    { tempCount :: Int
+    , labelCount :: Int
+    , varEnv :: Map.Map String Temp
+    , stringTemps :: Map.Map String StringTemp  -- Track string literals
     }
 
 -- Initialize empty state
@@ -17,7 +19,21 @@ initialState = TransState
     { tempCount = 0
     , labelCount = 0
     , varEnv = Map.empty
+    , stringTemps = Map.empty
     }
+
+newStringTemp :: String -> TransState -> (StringTemp, TransState)
+newStringTemp str state = 
+    case Map.lookup str (stringTemps state) of
+        Just temp -> (temp, state)  -- Reuse existing temp for same string
+        Nothing -> 
+            let count = tempCount state
+                temp = "str_" ++ show count
+                newState = state { 
+                    tempCount = count + 1,
+                    stringTemps = Map.insert str temp (stringTemps state)
+                }
+            in (temp, newState)
 
 -- Generate new temporary
 newTemp :: TransState -> (Temp, TransState)
@@ -32,6 +48,7 @@ newLabel state =
     let count = labelCount state
         label = "L" ++ show count
     in (label, state { labelCount = count + 1 })
+
 
 -- Main translation function for the program
 translateProgram :: AST -> IRProg
@@ -151,29 +168,36 @@ translateExpr :: Expr -> TransState -> (Temp, IRProg, TransState)
 translateExpr (IntLit n) state =
     let (temp, state1) = newTemp state
     in (temp, [CONST temp n], state1)
+
+translateExpr (StringLit s) state =
+    let (temp, state1) = newTemp state
+    in (temp, [STRINGCONST temp s], state1)
+
 translateExpr (BoolLit b) state =
     let (temp, state1) = newTemp state
     in (temp, [CONST temp (if b then 1 else 0)], state1)
-translateExpr (StringLit s) state =
-    let (temp, state1) = newTemp state
-    in (temp, [], state1)  -- String literals handled separately
+
 translateExpr (Id name) state =
     case Map.lookup name (varEnv state) of
         Just temp -> (temp, [], state)
         Nothing -> error $ "Undefined variable: " ++ name
+
 translateExpr (BinOp e1 op e2) state =
     let (temp1, code1, state1) = translateExpr e1 state
         (temp2, code2, state2) = translateExpr e2 state1
         (resultTemp, state3) = newTemp state2
     in (resultTemp, code1 ++ code2 ++ [BINOP op resultTemp temp1 temp2], state3)
+
 translateExpr (UnOp op e) state =
     let (temp, code, state1) = translateExpr e state
         (resultTemp, state2) = newTemp state1
     in (resultTemp, code ++ [UNOP op resultTemp temp], state2)
+
 translateExpr (Print e) state =
     let (temp, code, state1) = translateExpr e state
         (resultTemp, state2) = newTemp state1
     in (resultTemp, code ++ [CALL resultTemp "print" [temp]], state2)
+
 translateExpr ReadLn state =
     let (temp, state1) = newTemp state
     in (temp, [CALL temp "scan" []], state1)

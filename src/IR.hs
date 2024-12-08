@@ -10,6 +10,7 @@ type Label = String  -- For control flow labels (L1, L2, etc)
 data IRInstr 
     = MOVE Temp Temp                      -- Move between temps: t1 := t2 
     | CONST Temp Int                      -- Load constant: t1 := 5
+    | STRINGCONST Temp String             -- Load string constant: t1 := "hello"
     | BINOP BinOperator Temp Temp Temp    -- Binary op: t1 := t2 op t3
     | UNOP UnOperator Temp Temp           -- Unary op: t1 := op t2
     | LABEL Label                         -- Define label: L1:
