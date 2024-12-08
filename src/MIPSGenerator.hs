@@ -32,8 +32,6 @@ data MipsInstr
     | MipsJal String                       -- Jump and link (function call)
     | MipsJr String                        -- Jump register (return)
     | MipsComment String                   -- Comments for readability
-    | MipsAnd String String String         -- Logical AND
-    | MipsOr String String String          -- Logical OR
     deriving Show
 
 -- State for managing registers and memory
@@ -95,8 +93,6 @@ translateInstr (BINOP op dst src1 src2) =
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
-        And -> [ MipsAnd (getReg dst) (getReg src1) (getReg src2) ]
-        Or  -> [ MipsOr (getReg dst) (getReg src1) (getReg src2) ]
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 translateInstr (UNOP op dst src) =
@@ -180,8 +176,6 @@ mipsToString (MipsBgt src1 src2 lbl) = "\tbgt " ++ src1 ++ ", " ++ src2 ++ ", " 
 mipsToString (MipsJal lbl) = "\tjal " ++ lbl
 mipsToString (MipsJr reg) = "\tjr " ++ reg
 mipsToString (MipsComment comment) = "\t# " ++ comment
-mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsOr dst src1 src2) = "\tor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 
 -- Generate final MIPS assembly string
 generateAssembly :: IRProg -> String
