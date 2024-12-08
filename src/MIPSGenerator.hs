@@ -89,31 +89,40 @@ translateInstr (CONST temp val) =
 translateInstr (BINOP op dst src1 src2) =
     [MipsComment $ "BINOP " ++ show op] ++
     case op of
-        Eq  -> [MipsLt (getReg dst ++ "_t1") (getReg src1) (getReg src2),
-                MipsLt (getReg dst ++ "_t2") (getReg src2) (getReg src1),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2"),
+        Eq  -> [MipsLt "$t8" (getReg src1) (getReg src2),
+                MipsLt "$t9" (getReg src2) (getReg src1),
+                MipsOr (getReg dst) "$t8" "$t9",
                 MipsXor (getReg dst) (getReg dst) "1"]
-        Neq -> [MipsLt (getReg dst ++ "_t1") (getReg src1) (getReg src2),
-                MipsLt (getReg dst ++ "_t2") (getReg src2) (getReg src1),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2")]
+                
+        Neq -> [MipsLt "$t8" (getReg src1) (getReg src2),
+                MipsLt "$t9" (getReg src2) (getReg src1),
+                MipsOr (getReg dst) "$t8" "$t9"]
+                
         Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
         Gt  -> [MipsLt (getReg dst) (getReg src2) (getReg src1)]
+        
         Gte -> [MipsLt (getReg dst) (getReg src1) (getReg src2),
                 MipsXor (getReg dst) (getReg dst) "1"]
+                
         Lte -> [MipsLt (getReg dst) (getReg src2) (getReg src1),
                 MipsXor (getReg dst) (getReg dst) "1"]
-        And -> [MipsLt (getReg dst ++ "_t1") "$zero" (getReg src1), 
-                MipsLt (getReg dst ++ "_t2") "$zero" (getReg src2),
-                MipsAnd (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2") ]
-        Or  -> [MipsLt (getReg dst ++ "_t1") "$zero" (getReg src1),
-                MipsLt (getReg dst ++ "_t2") "$zero" (getReg src2),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "t2")]
+                
+        And -> [MipsLt "$t8" "$zero" (getReg src1), 
+                MipsLt "$t9" "$zero" (getReg src2),
+                MipsAnd (getReg dst) "$t8" "$t9"]
+                
+        Or  -> [MipsLt "$t8" "$zero" (getReg src1),
+                MipsLt "$t9" "$zero" (getReg src2),
+                MipsOr (getReg dst) "$t8" "$t9"]
+                
         Add -> [MipsAdd (getReg dst) (getReg src1) (getReg src2)]
         Sub -> [MipsSub (getReg dst) (getReg src1) (getReg src2)]
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
         _ -> error $ "Unsupported binary operator: " ++ show op
+
+
 
 translateInstr (UNOP op dst src) =
     [MipsComment $ "UNOP " ++ show op] ++
@@ -196,7 +205,6 @@ mipsToString (MipsBgt src1 src2 lbl) = "\tbgt " ++ src1 ++ ", " ++ src2 ++ ", " 
 mipsToString (MipsJal lbl) = "\tjal " ++ lbl                                                        -- Jal
 mipsToString (MipsJr reg) = "\tjr " ++ reg                                                          -- Jr
 mipsToString (MipsComment comment) = "\t# " ++ comment                                              -- Comment
-mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 
 -- Generate final MIPS assembly string
 generateAssembly :: IRProg -> String
