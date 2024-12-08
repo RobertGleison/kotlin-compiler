@@ -147,14 +147,18 @@ getReg temp =
 -- Convert MIPS instructions to strings
 mipsToString :: MipsInstr -> String
 mipsToString (MipsLabel lbl) = lbl ++ ":"
-mipsToString (MipsLi reg val) = "\tli " ++ reg ++ ", " ++ show val
-mipsToString (MipsMove dst src) = "\tmove " ++ dst ++ ", " ++ src
-mipsToString (MipsAdd dst src1 src2) = "\tadd " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsSub dst src1 src2) = "\tsub " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsMul dst src1 src2) = "\tmul " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsDiv src1 src2) = "\tdiv " ++ src1 ++ ", " ++ src2
-mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsMflo dst) = "\tmflo " ++ dst
+mipsToString (MipsLi reg val) = "\tli " ++ reg ++ ", " ++ show val                                  -- Li
+mipsToString (MipsMove dst src) = "\tmove " ++ dst ++ ", " ++ src                                   -- Move
+mipsToString (MipsAdd dst src1 src2) = "\tadd " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- Add
+mipsToString (MipsSub dst src1 src2) = "\tsub " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- Sub
+mipsToString (MipsMul dst src1 src2) = "\tmul " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- Mul
+mipsToString (MipsDiv src1 src2) = "\tdiv " ++ src1 ++ ", " ++ src2                                 -- Div
+mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- And
+mipsToString (MipsOr dst src1 src2) = "\tor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2                -- Or
+mipsToString (MipsGt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src2 ++ ", " ++ src1               -- Gt
+mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2               -- Lt
+mipsToString (MipsEq dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2               -- Eq
+mipsToString (MipsMflo dst) = "\tmflo " ++ dst                                                      -- Mflo
 mipsToString (MipsLw dst offset src) = "\tlw " ++ dst ++ ", " ++ show offset ++ "(" ++ src ++ ")"
 mipsToString (MipsSw src offset dst) = "\tsw " ++ src ++ ", " ++ show offset ++ "(" ++ dst ++ ")"
 mipsToString (MipsJ lbl) = "\tj " ++ lbl
