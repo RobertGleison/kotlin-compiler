@@ -33,6 +33,7 @@ data MipsInstr
     | MipsJal String                       -- Jump and link (function call)
     | MipsJr String                        -- Jump register (return)
     | MipsComment String                   -- Comments for readability
+    | MipsMfhi String 
     deriving Show
 
 -- State for managing registers and memory
@@ -120,6 +121,8 @@ translateInstr (BINOP op dst src1 src2) =
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
+        Mod -> [MipsDiv (getReg src1) (getReg src2),  -- Perform division
+                MipsMfhi (getReg dst)] 
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 
@@ -205,6 +208,7 @@ mipsToString (MipsBgt src1 src2 lbl) = "\tbgt " ++ src1 ++ ", " ++ src2 ++ ", " 
 mipsToString (MipsJal lbl) = "\tjal " ++ lbl                                                        -- Jal
 mipsToString (MipsJr reg) = "\tjr " ++ reg                                                          -- Jr
 mipsToString (MipsComment comment) = "\t# " ++ comment                                              -- Comment
+mipsToString (MipsMfhi dst) = "\tmfhi " ++ dst
 
 -- Generate final MIPS assembly string
 generateAssembly :: IRProg -> String
