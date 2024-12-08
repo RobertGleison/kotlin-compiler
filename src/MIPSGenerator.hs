@@ -24,6 +24,8 @@ data MipsInstr
     | MipsJal String                       -- Jump and link (function call)
     | MipsJr String                        -- Jump register (return)
     | MipsComment String                   -- Comments for readability
+    | MipsAnd String String String         -- Logical AND
+    | MipsOr String String String          -- Logical OR
     deriving Show
 
 -- State for managing registers and memory
@@ -38,7 +40,10 @@ initialState = CodeGenState 0 Map.empty
 -- Convert IR program to MIPS
 generateMips :: IRProg -> [MipsInstr]
 generateMips irProg = 
-    let header = [MipsComment "Program Start", MipsJ "main"]
+    let header = [ MipsComment "Program Start"
+                , MipsJ "main"
+                , MipsLabel "main"        -- Added this line to create main label
+                ]
         code = concatMap translateInstr irProg
         footer = [MipsComment "Program End"]
     in header ++ code ++ footer ++ generateLibrary
@@ -46,13 +51,13 @@ generateMips irProg =
 -- Generate standard library functions (print_int, scan_int, etc)
 generateLibrary :: [MipsInstr]
 generateLibrary = 
-    [ MipsLabel "print_int"
+    [ MipsLabel "print"
     , MipsLi "$v0" 1           -- syscall 1 = print integer
     , MipsLw "$a0" 0 "$sp"     -- load argument from stack
     , MipsComment "syscall to print"
     , MipsJr "$ra"             -- return
     
-    , MipsLabel "scan_int"
+    , MipsLabel "scan"
     , MipsLi "$v0" 5           -- syscall 5 = read integer
     , MipsComment "syscall to read"
     , MipsJr "$ra"             -- return
@@ -76,6 +81,8 @@ translateInstr (BINOP op dst src1 src2) =
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
+        And -> [ MipsAnd (getReg dst) (getReg src1) (getReg src2) ]
+        Or  -> [ MipsOr (getReg dst) (getReg src1) (getReg src2) ]
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 translateInstr (UNOP op dst src) =
@@ -89,6 +96,7 @@ translateInstr (LABEL lbl) =
 
 translateInstr (JUMP lbl) =
     [MipsJ lbl]
+
 
 translateInstr (CJUMP op src1 src2 lbl) =
     [MipsComment $ "CJUMP " ++ show op] ++
@@ -128,7 +136,10 @@ getReg :: Temp -> String
 getReg temp = 
     if temp `elem` ["$v0", "$a0", "$ra", "$sp", "$fp", "$zero"]
     then temp  -- These are actual MIPS registers
-    else "$t" ++ tail temp  -- Convert t1 to $t1
+    else case reads (tail temp) :: [(Int, String)] of
+         [(n, "")] -> "$t" ++ show (n `mod` 8)  -- Convert t11 to $t3 (11 mod 8 = 3)
+         _ -> temp  -- If parsing fails, return unchanged
+
 
 -- Convert MIPS instructions to strings
 mipsToString :: MipsInstr -> String
@@ -150,6 +161,8 @@ mipsToString (MipsBgt src1 src2 lbl) = "\tbgt " ++ src1 ++ ", " ++ src2 ++ ", " 
 mipsToString (MipsJal lbl) = "\tjal " ++ lbl
 mipsToString (MipsJr reg) = "\tjr " ++ reg
 mipsToString (MipsComment comment) = "\t# " ++ comment
+mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
+mipsToString (MipsOr dst src1 src2) = "\tor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 
 -- Generate final MIPS assembly string
 generateAssembly :: IRProg -> String

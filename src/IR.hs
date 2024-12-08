@@ -1,6 +1,6 @@
 module IR where
 
-import AST
+import AST (BinOperator(..), UnOperator(..))
 
 -- Temporaries and labels are strings
 type Temp = String   -- For temporary variables (t1, t2, etc)
