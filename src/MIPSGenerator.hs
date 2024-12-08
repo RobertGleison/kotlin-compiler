@@ -18,10 +18,7 @@ data MipsInstr
     | MipsAnd String String String         -- And
     | MipsOr String String String          -- Or
     | MipsXor String String String         -- Xor
-    | MipsGt String String String          -- Gt
     | MipsLt String String String          -- Lt
-    | MipsEq String String String          -- Eq
-    | MipsNeq String String String         -- Neq
     | MipsMflo String                      -- Move from lo
     | MipsLw String Int String             -- Load word
     | MipsSw String Int String             -- Store word
@@ -83,36 +80,41 @@ translateInstr (CONST temp val) =
 translateInstr (BINOP op dst src1 src2) =
     [MipsComment $ "BINOP " ++ show op] ++
     case op of
-        Eq  -> [MipsLt (getReg dst ++ "_t1") (getReg src1) (getReg src2),
-                MipsLt (getReg dst ++ "_t2") (getReg src2) (getReg src1),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2"),
+        Eq  -> [MipsLt "$t8" (getReg src1) (getReg src2),
+                MipsLt "$t9" (getReg src2) (getReg src1),
+                MipsOr (getReg dst) "$t8" "$t9",
                 MipsXor (getReg dst) (getReg dst) "1"]
-        Neq -> [MipsLt (getReg dst ++ "_t1") (getReg src1) (getReg src2),
-                MipsLt (getReg dst ++ "_t2") (getReg src2) (getReg src1),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2")]
+        Neq -> [MipsLt "$t8" (getReg src1) (getReg src2),
+                MipsLt "$t9" (getReg src2) (getReg src1),
+                MipsOr (getReg dst) "$t8" "$t9"]
         Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
         Gt  -> [MipsLt (getReg dst) (getReg src2) (getReg src1)]
         Gte -> [MipsLt (getReg dst) (getReg src1) (getReg src2),
                 MipsXor (getReg dst) (getReg dst) "1"]
         Lte -> [MipsLt (getReg dst) (getReg src2) (getReg src1),
                 MipsXor (getReg dst) (getReg dst) "1"]
-        And -> [MipsLt (getReg dst ++ "_t1") "$zero" (getReg src1), 
-                MipsLt (getReg dst ++ "_t2") "$zero" (getReg src2),
-                MipsAnd (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "_t2") ]
-        Or  -> [MipsLt (getReg dst ++ "_t1") "$zero" (getReg src1),
-                MipsLt (getReg dst ++ "_t2") "$zero" (getReg src2),
-                MipsOr (getReg dst) (getReg dst ++ "_t1") (getReg dst ++ "t2")]
+        And -> [MipsLt "$t8" "$zero" (getReg src1), 
+                MipsLt "$t9" "$zero" (getReg src2),
+                MipsAnd (getReg dst) "$t8" "$t9" ]
+        Or  -> [MipsLt "$t8" "$zero" (getReg src1),
+                MipsLt "$t9" "$zero" (getReg src2),
+                MipsOr (getReg dst) "$t8" "$t9"]
         Add -> [MipsAdd (getReg dst) (getReg src1) (getReg src2)]
         Sub -> [MipsSub (getReg dst) (getReg src1) (getReg src2)]
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
+        Mod -> [MipsDiv (getReg src1) (getReg src2),
+                MipsMflo "$t8",
+                MipsMul "$t9" "$t8" (getReg src2),
+                MipsSub (getReg dst) (getReg src1) "$t9"]
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 translateInstr (UNOP op dst src) =
     [MipsComment $ "UNOP " ++ show op] ++
     case op of
         Neg -> [MipsSub (getReg dst) "$zero" (getReg src)]
+        Not -> [MipsXor (getReg dst) (getReg src) "1"]
         _ -> error $ "Unsupported unary operator: " ++ show op
 
 translateInstr (LABEL lbl) = 
@@ -177,8 +179,7 @@ mipsToString (MipsDiv src1 src2) = "\tdiv " ++ src1 ++ ", " ++ src2             
 mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- And
 mipsToString (MipsOr dst src1 src2) = "\tor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2                -- Or
 mipsToString (MipsXor dst src1 src2) = "\txor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2              -- Xor
-mipsToString (MipsGt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2               -- Lt
-mipsToString (MipsEq dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2               -- Eq
+mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2               -- Lt
 mipsToString (MipsMflo dst) = "\tmflo " ++ dst                                                      -- Mflo
 mipsToString (MipsLw dst offset src) = "\tlw " ++ dst ++ ", " ++ show offset ++ "(" ++ src ++ ")"   -- Lw
 mipsToString (MipsSw src offset dst) = "\tsw " ++ src ++ ", " ++ show offset ++ "(" ++ dst ++ ")"   -- Sw
