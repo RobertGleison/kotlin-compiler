@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use :" #-}
 module MIPSGenerator where
 
 import IR
@@ -13,6 +15,12 @@ data MipsInstr
     | MipsSub String String String         -- Subtract
     | MipsMul String String String         -- Multiply
     | MipsDiv String String                -- Divide (result in lo)
+    | MipsAnd String String String         -- And
+    | MipsOr String String String          -- Or
+    | MipsGt String String String          -- Gt
+    | MipsLt String String String          -- Lt
+    | MipsEq String String String          -- Eq
+    | MipsNeq String String String         -- Neq
     | MipsMflo String                      -- Move from lo
     | MipsLw String Int String             -- Load word
     | MipsSw String Int String             -- Store word
@@ -71,6 +79,12 @@ translateInstr (CONST temp val) =
 translateInstr (BINOP op dst src1 src2) =
     [MipsComment $ "BINOP " ++ show op] ++
     case op of
+        Eq  -> [MipsEq (getReg dst) (getReg src1) (getReg src2)]
+        Neq -> [MipsNeq (getReg dst) (getReg src1) (getReg src2)]
+        Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
+        Gt  -> [MipsGt (getReg dst) (getReg src1) (getReg src2)]
+        And -> [MipsAnd (getReg dst) (getReg src1) (getReg src2)]
+        Or  -> [MipsOr (getReg dst) (getReg src1) (getReg src2)]
         Add -> [MipsAdd (getReg dst) (getReg src1) (getReg src2)]
         Sub -> [MipsSub (getReg dst) (getReg src1) (getReg src2)]
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
@@ -139,6 +153,7 @@ mipsToString (MipsAdd dst src1 src2) = "\tadd " ++ dst ++ ", " ++ src1 ++ ", " +
 mipsToString (MipsSub dst src1 src2) = "\tsub " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsMul dst src1 src2) = "\tmul " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsDiv src1 src2) = "\tdiv " ++ src1 ++ ", " ++ src2
+mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsMflo dst) = "\tmflo " ++ dst
 mipsToString (MipsLw dst offset src) = "\tlw " ++ dst ++ ", " ++ show offset ++ "(" ++ src ++ ")"
 mipsToString (MipsSw src offset dst) = "\tsw " ++ src ++ ", " ++ show offset ++ "(" ++ dst ++ ")"
