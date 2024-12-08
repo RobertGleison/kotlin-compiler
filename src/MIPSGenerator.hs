@@ -44,16 +44,22 @@ data CodeGenState = CodeGenState
 initialState :: CodeGenState
 initialState = CodeGenState 0 Map.empty
 
--- Convert IR program to MIPS
 generateMips :: IRProg -> [MipsInstr]
 generateMips irProg = 
     let header = [ MipsComment "Program Start"
                 , MipsJ "main"
-                , MipsLabel "main"        -- Added this line to create main label
+                , MipsLabel "main"
                 ]
         code = concatMap translateInstr irProg
         footer = [MipsComment "Program End"]
-    in header ++ code ++ footer ++ generateLibrary
+        -- Check if we need library functions
+        needsLibrary = any needsLibraryFunction irProg
+    in header ++ code ++ footer ++ (if needsLibrary then generateLibrary else [])
+
+-- Helper function to check if an instruction needs library functions
+needsLibraryFunction :: IRInstr -> Bool
+needsLibraryFunction (CALL _ fname _) = fname `elem` ["print", "scan"]
+needsLibraryFunction _ = False
 
 -- Generate standard library functions (print_int, scan_int, etc)
 generateLibrary :: [MipsInstr]
@@ -190,6 +196,7 @@ mipsToString (MipsBgt src1 src2 lbl) = "\tbgt " ++ src1 ++ ", " ++ src2 ++ ", " 
 mipsToString (MipsJal lbl) = "\tjal " ++ lbl                                                        -- Jal
 mipsToString (MipsJr reg) = "\tjr " ++ reg                                                          -- Jr
 mipsToString (MipsComment comment) = "\t# " ++ comment                                              -- Comment
+mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 
 -- Generate final MIPS assembly string
 generateAssembly :: IRProg -> String
