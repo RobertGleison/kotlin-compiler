@@ -94,16 +94,20 @@ checkDeclare :: FunEnv -> TypeEnv -> Declare -> Either String (Type, TypeEnv)
 checkDeclare funEnv env (ValDecl name declType expr) = do
     exprType <- checkExpr funEnv env expr                                       -- Get the Expression type. Ex: val x: Int = 5 -> Int
     if exprType == declType                                                     -- If matches
-        then return (UnitType, Map.insert name declType env)                    -- Return void, add new variabble to env, insert into Map = X -> IntType to env
-        else Left $ "Type mismatch in declaration of " ++ name                  -- Else return error
+        then return (UnitType, Map.insert name declType env)                    -- Return void, add new variable to env, insert into Map = X -> IntType to env
+    else if declType == UnitType                                                -- If declType is UnitType. Ex: val x = 5 -> Int
+        then return (UnitType, Map.insert name exprType env)                    -- Return void, add new variable to env, insert into Map = X -> IntType to env
+    else Left $ "Type mismatch in declaration of " ++ name
 
 
 -- Check declarations for var
-checkDeclare funEnv env (VarDecl name declType expr) = do                       
-    exprType <- checkExpr funEnv env expr
+checkDeclare funEnv env (VarDecl name declType expr) = do
+    exprType <- checkExpr funEnv env expr                                       
     if exprType == declType
         then return (UnitType, Map.insert name declType env)
-        else Left $ "Type mismatch in declaration of " ++ name
+    else if declType == UnitType
+        then return (UnitType, Map.insert name exprType env)
+    else Left $ "Type mismatch in declaration of " ++ name
 
 
 -- Chek declarations without initialization ( var )

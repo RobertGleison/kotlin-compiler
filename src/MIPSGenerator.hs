@@ -20,10 +20,7 @@ data MipsInstr
     | MipsAnd String String String         -- And
     | MipsOr String String String          -- Or
     | MipsXor String String String         -- Xor
-    | MipsGt String String String          -- Gt
     | MipsLt String String String          -- Lt
-    | MipsEq String String String          -- Eq
-    | MipsNeq String String String         -- Neq
     | MipsMflo String                      -- Move from lo
     | MipsLw String Int String             -- Load word
     | MipsSw String Int String             -- Store word
@@ -151,15 +148,15 @@ translateInstr (BINOP op dst src1 src2) =
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
-        Mod -> [MipsDiv (getReg src1) (getReg src2),
-                MipsMfhi (getReg dst)]
+        Mod -> [MipsDiv (getReg src1) (getReg src2),  -- Perform division
+                MipsMfhi (getReg dst)] 
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 translateInstr (UNOP op dst src) =
     [MipsComment $ "UNOP " ++ show op] ++
     case op of
         Neg -> [MipsSub (getReg dst) "$zero" (getReg src)]
-        _ -> error $ "Unsupported unary operator: " ++ show op
+        Not -> [MipsXor (getReg dst) (getReg src) "1"]
 
 translateInstr (LABEL lbl) = [MipsLabel lbl]
 translateInstr (JUMP lbl) = [MipsJ lbl]
@@ -258,7 +255,6 @@ mipsToString (MipsAnd dst src1 src2) = "\tand " ++ dst ++ ", " ++ src1 ++ ", " +
 mipsToString (MipsOr dst src1 src2) = "\tor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsXor dst src1 src2) = "\txor " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
-mipsToString (MipsEq dst src1 src2) = "\tseq " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsMflo dst) = "\tmflo " ++ dst
 mipsToString (MipsLw dst offset src) = "\tlw " ++ dst ++ ", " ++ show offset ++ "(" ++ src ++ ")"
 mipsToString (MipsSw src offset dst) = "\tsw " ++ src ++ ", " ++ show offset ++ "(" ++ dst ++ ")"

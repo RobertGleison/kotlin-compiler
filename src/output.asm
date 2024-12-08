@@ -2,54 +2,42 @@
 newline: .asciiz 
 
 buffer: .space 100
-t5: .asciiz "Both a and b are true"
-t8: .asciiz "At least one of a or b is true"
-t10: .asciiz "Both a and b are false"
+t0: .asciiz "Enter a number: "
+t8: .asciiz "Factorial is not defined for negative numbers."
+t17: .asciiz "Factorial of $num is $factorial"
 .text
 	# Program Start
 	j main
 main:
-	# CONST t0 1
-	li $t0, 1
-	# MOVE t1 t0
-	move $t1, $t0
-	# CONST t2 0
-	li $t2, 0
-	# MOVE t3 t2
-	move $t3, $t2
-	# CONST t13 1
-	li $t5, 1
-	# BINOP And
-	slt $t8, $zero, $t1
-	slt $t9, $zero, $t3
-	and $t4, $t8, $t9
-	# CJUMP Eq
-	bne $t4, $t5, L0
-	j L1
-L0:
-	# STRING CONST t5 = "Both a and b are true"
-	la $t5, t5
+	# STRING CONST t0 = "Enter a number: "
+	la $t0, t0
 	# CALL print
 	sw $ra, -4($sp)
 	sub $sp, $sp, 4
-	sw $t5, 0($sp)
+	sw $t0, 0($sp)
 	jal print_string
 	add $sp, $sp, 4
 	lw $ra, -4($sp)
-	move $t6, $v0
-	j L2
-L1:
-	# CONST t12 1
+	move $t1, $v0
+	# CONST t2 3
+	li $t2, 3
+	# MOVE t3 t2
+	move $t3, $t2
+	# CONST t4 1
 	li $t4, 1
-	# BINOP Or
-	slt $t8, $zero, $t1
-	slt $t9, $zero, $t3
-	or $t7, $t8, $t9
+	# MOVE t5 t4
+	move $t5, $t4
+	# CONST t19 1
+	li $t3, 1
+	# CONST t6 0
+	li $t6, 0
+	# BINOP Gt
+	slt $t7, $t6, $t3
 	# CJUMP Eq
-	bne $t7, $t4, L3
-	j L4
-L3:
-	# STRING CONST t8 = "At least one of a or b is true"
+	bne $t7, $t3, L0
+	j L1
+L0:
+	# STRING CONST t8 = "Factorial is not defined for negative numbers."
 	la $t0, t8
 	# CALL print
 	sw $ra, -4($sp)
@@ -59,19 +47,44 @@ L3:
 	add $sp, $sp, 4
 	lw $ra, -4($sp)
 	move $t1, $v0
+	j L2
+L1:
+	# CONST t10 1
+	li $t2, 1
+	# MOVE t11 t10
+	move $t3, $t2
+L3:
+	# CONST t16 1
+	li $t0, 1
+	# BINOP Lte
+	slt $t4, $t3, $t3
+	xor $t4, $t4, 1
+	# CJUMP Eq
+	bne $t4, $t0, L4
 	j L5
 L4:
-	# STRING CONST t10 = "Both a and b are false"
-	la $t2, t10
+	# BINOP Mul
+	mul $t5, $t3, $t3
+	# MOVE t5 t13
+	move $t5, $t5
+	# CONST t14 1
+	li $t6, 1
+	# BINOP Add
+	add $t7, $t3, $t6
+	# MOVE t11 t15
+	move $t3, $t7
+	j L3
+L5:
+	# STRING CONST t17 = "Factorial of $num is $factorial"
+	la $t1, t17
 	# CALL print
 	sw $ra, -4($sp)
 	sub $sp, $sp, 4
-	sw $t2, 0($sp)
+	sw $t1, 0($sp)
 	jal print_string
 	add $sp, $sp, 4
 	lw $ra, -4($sp)
-	move $t3, $v0
-L5:
+	move $t2, $v0
 L2:
 	# Program End
 	li $v0, 10
