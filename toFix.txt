@@ -2,4 +2,8 @@ prefixos - e ! só devem se aplicar a literais? -> checar com o professor
 
 Lexer não tem tokens para ler inteiros do readln. No caso readln().toInt(). Se eu tentar fazer var x: Int = readln().toIn() dá erro de lexer. Preciso?
 
-Analizador Semântico não consegue aceitar variaveis int sem type hint. Ex: var x = 10 dá erro, teria que ser var x: Int = 10
+Analizador Semântico não consegue impedir um "return x";
+
+Não pode permitir a mudança de val;
+
+Return gera erros.
