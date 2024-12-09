@@ -46,12 +46,10 @@ data CodeGenState = CodeGenState
     }
 
 -- State Initialization
--------------------------------------------------------------------------------
 initialState :: CodeGenState
 initialState = CodeGenState 0 Map.empty
 
 -- Data Section Generation
--------------------------------------------------------------------------------
 generateData :: IRProg -> [MipsInstr]
 generateData prog =
     [ MipsDataString "newline" "\n"     -- Simplified newline
@@ -64,12 +62,13 @@ generateData prog =
             [MipsDataString t ("\"" ++ str ++ "\"")]
         extractStrings _ = []
 
-isStringTemp :: String -> Bool
-isStringTemp t = "str_" `isPrefixOf` t
-
+isStringTemp :: String -> [MipsInstr] -> Bool
+isStringTemp temp dataSection = any (isDataString temp) dataSection
+  where
+    isDataString t (MipsDataString label _) = t == label
+    isDataString _ _ = False
 
 -- Library Function Generation
--------------------------------------------------------------------------------
 generateLibrary :: [MipsInstr]
 generateLibrary = 
     [ -- Print string function
@@ -103,8 +102,7 @@ generateLibrary =
     , MipsJr "$ra"
     ]
 
--- Instruction Translation
--------------------------------------------------------------------------------
+-- Base instruction translation
 translateInstr :: IRInstr -> [MipsInstr]
 translateInstr (MOVE dst src) = 
     [MipsComment $ "MOVE " ++ dst ++ " " ++ src,
@@ -126,10 +124,8 @@ translateInstr (BINOP op dst src1 src2) =
                 MipsOr (getReg dst) "$t8" "$t9"]
         Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
         Gt  -> [MipsLt (getReg dst) (getReg src2) (getReg src1)]
-        
         Gte -> [MipsLt (getReg dst) (getReg src1) (getReg src2),
                 MipsXor (getReg dst) (getReg dst) "1"]
-                
         Lte -> [MipsLt (getReg dst) (getReg src2) (getReg src1),
                 MipsXor (getReg dst) (getReg dst) "1"]
         And -> [MipsLt "$t8" "$zero" (getReg src1), 
@@ -143,8 +139,8 @@ translateInstr (BINOP op dst src1 src2) =
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
         Div -> [MipsDiv (getReg src1) (getReg src2),
                 MipsMflo (getReg dst)]
-        Mod -> [MipsDiv (getReg src1) (getReg src2),  -- Perform division
-                MipsMfhi (getReg dst)] 
+        Mod -> [MipsDiv (getReg src1) (getReg src2),
+                MipsMfhi (getReg dst)]
         _ -> error $ "Unsupported binary operator: " ++ show op
 
 translateInstr (UNOP op dst src) =
@@ -165,32 +161,9 @@ translateInstr (CJUMP op src1 src2 lbl) =
         Gt  -> [MipsBgt (getReg src1) (getReg src2) lbl]
         _ -> error $ "Unsupported comparison operator: " ++ show op
 
-translateInstr (CALL dst fname args) =
-    let setupStack = if not (null args)
-                    then [MipsSub "$sp" "$sp" (show (4 * length args))]
-                    else []
-        saveArgs = zipWith (\arg pos -> 
-            MipsSw (getReg arg) (pos * 4) "$sp") args [0..]
-        restoreStack = if not (null args)
-                      then [MipsAdd "$sp" "$sp" (show (4 * length args))]
-                      else []
-        -- Check if any argument is in the data section (meaning it's a string)
-        actualFname = case fname of
-            "print" -> "print_string"  -- Since we can see string constants in data section
-            other -> other
-    in [MipsComment $ "CALL " ++ fname,
-        MipsSw "$ra" (-4) "$sp"] ++    
-        setupStack ++
-        saveArgs ++
-        [MipsJal actualFname] ++
-        restoreStack ++
-        [MipsLw "$ra" (-4) "$sp",     
-         MipsMove (getReg dst) "$v0"]
-
-translateInstr (RETURN temp) =
-    [MipsComment "RETURN",
-     MipsMove "$v0" (getReg temp),
-     MipsJr "$ra"]
+translateInstr (STRINGCONST temp str) =
+    [MipsComment $ "STRING CONST " ++ temp ++ " = " ++ show str,
+     MipsLa (getReg temp) temp]
 
 translateInstr (STORE addr val) =
     [MipsComment "STORE",
@@ -200,14 +173,42 @@ translateInstr (LOAD dst addr) =
     [MipsComment "LOAD",
      MipsLw (getReg dst) 0 (getReg addr)]
 
-translateInstr (STRINGCONST temp str) =
-    [MipsComment $ "STRING CONST " ++ temp ++ " = " ++ show str,
-     MipsLa (getReg temp) temp]
+translateInstr (RETURN temp) =
+    [MipsComment "RETURN",
+     MipsMove "$v0" (getReg temp),
+     MipsJr "$ra"]
 
 translateInstr NOP = [MipsComment "NOP"]
 
+-- Instruction translation with data section context
+translateInstrWithData :: [MipsInstr] -> IRInstr -> [MipsInstr]
+translateInstrWithData dataSection (CALL dst fname args) =
+    let setupStack = if not (null args)
+                    then [MipsSub "$sp" "$sp" (show (4 * length args))]
+                    else []
+        saveArgs = zipWith (\arg pos -> 
+            MipsSw (getReg arg) (pos * 4) "$sp") args [0..]
+        restoreStack = if not (null args)
+                      then [MipsAdd "$sp" "$sp" (show (4 * length args))]
+                      else []
+        actualFname = case fname of
+            "print" -> case args of
+                        (arg:_) -> if isStringTemp arg dataSection
+                                  then "print_string"
+                                  else "print_int"
+                        _ -> "print_string"
+            other -> other
+    in [MipsComment $ "CALL " ++ fname] ++
+        (if not (null args) then setupStack else []) ++
+        [MipsSw "$ra" (-4) "$sp"] ++    
+        saveArgs ++
+        [MipsJal actualFname] ++
+        restoreStack ++
+        [MipsLw "$ra" (-4) "$sp",     
+         MipsMove (getReg dst) "$v0"]
+translateInstrWithData _ instr = translateInstr instr
+
 -- Helper Functions
--------------------------------------------------------------------------------
 needsLibraryFunction :: IRInstr -> Bool
 needsLibraryFunction (CALL _ fname _) = fname `elem` ["print", "print_string", "print_int", "scan"]
 needsLibraryFunction _ = False
@@ -221,14 +222,14 @@ getReg temp =
          _ -> temp
 
 -- MIPS Generation
--------------------------------------------------------------------------------
 generateMips :: IRProg -> [MipsInstr]
 generateMips irProg = 
     let header = [ MipsComment "Program Start"
                 , MipsJ "main"
                 , MipsLabel "main"
                 ]
-        code = concatMap translateInstr irProg
+        dataSection = generateData irProg
+        code = concatMap (translateInstrWithData dataSection) irProg
         footer = [ MipsComment "Program End"
                 , MipsLi "$v0" 10      -- syscall 10 is exit
                 , MipsSyscall
@@ -237,7 +238,6 @@ generateMips irProg =
     in header ++ code ++ footer ++ (if needsLibrary then generateLibrary else [])
 
 -- String Generation
--------------------------------------------------------------------------------
 mipsToString :: MipsInstr -> String
 mipsToString (MipsLabel lbl) = lbl ++ ":"
 mipsToString (MipsLi reg val) = "\tli " ++ reg ++ ", " ++ show val
@@ -268,9 +268,8 @@ mipsToString (MipsDataString label str) = label ++ ": .asciiz " ++ str
 mipsToString (MipsDataSpace label size) = label ++ ": .space " ++ show size
 
 -- Main Assembly Generation
--------------------------------------------------------------------------------
 generateAssembly :: IRProg -> String
-generateAssembly irProg = 
+generateAssembly irProg =
     unlines $ 
     [".data"] ++
     map mipsToString (generateData irProg) ++
