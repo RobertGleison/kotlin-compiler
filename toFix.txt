@@ -1,7 +1,0 @@
-readln não funciona, salva o valor errado;
-
-Analizador Semântico não consegue impedir um "return x";
-
-Não pode permitir a mudança de val;
-
-Return gera erros.

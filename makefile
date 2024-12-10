@@ -39,6 +39,18 @@ run: build
 	@echo "------------------------"
 	cd src && ./Main ../examples/example5.kt || true
 	@echo "------------------------"
+	@echo "Testing example6.kt:"
+	@echo "------------------------"
+	cd src && ./Main ../examples/example6.kt || true
+	@echo "------------------------"
+	@echo "Testing example7.kt:"
+	@echo "------------------------"
+	cd src && ./Main ../examples/example7.kt || true
+	@echo "------------------------"
+	@echo "Testing example8.kt:"
+	@echo "------------------------"
+	cd src && ./Main ../examples/example8.kt || true
+	@echo "------------------------"
 	@echo "All tests completed."
 
 .PHONY: build clean run

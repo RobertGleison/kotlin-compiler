@@ -1,0 +1,22 @@
+print de texto
+print de numero
+
+
+Operações:
+addição
+subtração
+multiplicação
+divisão para casos divisíveis que dá inteiros
+mod
+
+
+
+
+n funciona:
+main() com nomes diferetens n cai no analisador sintático. Ex: main123()
+div
+mod
+and
+or
+
+muitas operações esgotam os registradores causando overwriting
