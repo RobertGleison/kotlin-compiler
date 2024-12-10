@@ -25,6 +25,7 @@ data MipsInstr
     | MipsLw String Int String             -- Load word
     | MipsSw String Int String             -- Store word
     | MipsJ String                         -- Jump
+    | MipsSeq String String String         -- Set if equal
     | MipsBne String String String         -- Branch if not equal
     | MipsBeq String String String         -- Branch if equal
     | MipsBlt String String String         -- Branch if less than
@@ -118,15 +119,11 @@ translateInstr (CONST temp val) =
 translateInstr (BINOP op dst src1 src2) =
     [MipsComment $ "BINOP " ++ show op] ++
     case op of
-        Eq  -> [MipsXor "$t8" (getReg src1) (getReg src2),
-                MipsLi "$t9" 1,               -- Changed from overwriting source registers
-                MipsLt (getReg dst) "$t8" "$t9",  -- 1 if XOR result < 1 (i.e., is 0)
-                MipsXor (getReg dst) (getReg dst) "$t9"]  -- Use $t9 instead of immediate 1
+        Eq  -> [MipsSeq (getReg dst) (getReg src1) (getReg src2)]  -- Use $t9 instead of immediate 1
                 
         -- Not Equal (!=): XOR them, then use slt to check if result is not 0
-        Neq -> [MipsXor "$t8" (getReg src1) (getReg src2),
-                MipsLi "$t9" 1,
-                MipsLt (getReg dst) "$t8" "$t9"] 
+        Neq -> [MipsSeq (getReg dst) (getReg src1) (getReg src2),
+                MipsXor (getReg dst) (getReg dst) "1"]
                 
         -- Less Than (<): Direct slt
         Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
@@ -141,12 +138,8 @@ translateInstr (BINOP op dst src1 src2) =
         -- Less Than or Equal (<=): Swap operands in slt and invert result
         Lte -> [MipsLt (getReg dst) (getReg src2) (getReg src1),
                 MipsXor (getReg dst) (getReg dst) "1"]
-        And -> [MipsLt "$t8" "$zero" (getReg src1), 
-                MipsLt "$t9" "$zero" (getReg src2),
-                MipsAnd (getReg dst) "$t8" "$t9" ]
-        Or  -> [MipsLt "$t8" "$zero" (getReg src1),
-                MipsLt "$t9" "$zero" (getReg src2),
-                MipsOr (getReg dst) "$t8" "$t9"]
+        And -> [MipsAnd (getReg dst) (getReg src1) (getReg src2)]
+        Or  -> [MipsOr (getReg dst) (getReg src1) (getReg src2)]
         Add -> [MipsAdd (getReg dst) (getReg src1) (getReg src2)]
         Sub -> [MipsSub (getReg dst) (getReg src1) (getReg src2)]
         Mul -> [MipsMul (getReg dst) (getReg src1) (getReg src2)]
@@ -251,7 +244,7 @@ needsLibraryFunction _ = False
 
 getReg :: Temp -> String
 getReg temp = 
-    if temp `elem` ["$v0", "$a0", "$ra", "$sp", "$fp", "$zero"]
+    if temp `elem` ["$v0", "$a0", "$ra", "$sp", "$fp", "$zero", "$t8", "$t9"]
     then temp
     else case reads (tail temp) :: [(Int, String)] of
          [(n, "")] -> "$t" ++ show (n `mod` 8)
@@ -289,6 +282,7 @@ mipsToString (MipsLt dst src1 src2) = "\tslt " ++ dst ++ ", " ++ src1 ++ ", " ++
 mipsToString (MipsMflo dst) = "\tmflo " ++ dst
 mipsToString (MipsLw dst offset src) = "\tlw " ++ dst ++ ", " ++ show offset ++ "(" ++ src ++ ")"
 mipsToString (MipsSw src offset dst) = "\tsw " ++ src ++ ", " ++ show offset ++ "(" ++ dst ++ ")"
+mipsToString (MipsSeq dst src1 src2) = "\tseq " ++ dst ++ ", " ++ src1 ++ ", " ++ src2
 mipsToString (MipsJ lbl) = "\tj " ++ lbl
 mipsToString (MipsBne src1 src2 lbl) = "\tbne " ++ src1 ++ ", " ++ src2 ++ ", " ++ lbl
 mipsToString (MipsBeq src1 src2 lbl) = "\tbeq " ++ src1 ++ ", " ++ src2 ++ ", " ++ lbl

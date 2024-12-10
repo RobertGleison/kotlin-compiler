@@ -1,6 +1,4 @@
-prefixos - e ! só devem se aplicar a literais? -> checar com o professor
-
-Lexer não tem tokens para ler inteiros do readln. No caso readln().toInt(). Se eu tentar fazer var x: Int = readln().toIn() dá erro de lexer. Preciso?
+readln não funciona, salva o valor errado;
 
 Analizador Semântico não consegue impedir um "return x";
 

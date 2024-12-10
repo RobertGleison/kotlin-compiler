@@ -123,9 +123,9 @@ checkAssign funEnv env (Assign name expr) = do
         Nothing -> Left $ "Variable " ++ name ++ " not declared"                -- Error if variable not declared
         Just varType -> do
             exprType <- checkExpr funEnv env expr                               -- get the Type of expression and compare with variable type
-            if exprType == varType                                              
+            if (exprType == varType) || (exprType == UnitType)                                              
                 then return (UnitType, env)                                     -- Return void if matches 
-                else Left $ "Type mismatch in assignment to " ++ name           -- Retunt error String ig not match
+            else Left $ "Type mismatch in assignment to " ++ name               -- Retunt error String ig not match
 
 
 

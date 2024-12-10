@@ -42,6 +42,15 @@ newTemp state =
         temp = "t" ++ show count
     in (temp, state { tempCount = count + 1 })
 
+convert :: Int -> Temp
+convert n = if even n then "$t8" else "$t9"
+
+getReservedTemp :: TransState -> (Temp, TransState)
+getReservedTemp state =
+    let count = tempCount state
+        temp = convert count
+    in (temp, state { tempCount = count + 1 })
+
 -- Generate new label
 newLabel :: TransState -> (Label, TransState)
 newLabel state = 
@@ -102,9 +111,8 @@ translateCmd (ExprCmd expr) state =
 translateDeclare :: Declare -> TransState -> (IRProg, TransState)
 translateDeclare (ValDecl name _ expr) state =
     let (temp, code, state1) = translateExpr expr state
-        (varTemp, state2) = newTemp state1
-        newEnv = Map.insert name varTemp (varEnv state2)
-    in (code ++ [MOVE varTemp temp], state2 { varEnv = newEnv })
+        newEnv = Map.insert name temp (varEnv state1)
+    in (code, state1 { varEnv = newEnv })
 translateDeclare (VarDecl name _ expr) state =
     translateDeclare (ValDecl name UnitType expr) state
 translateDeclare (VarDeclEmpty name _) state =
@@ -130,7 +138,7 @@ translateIf (If cond thenBlock elseBlock) state =
         (endLabel, state4) = newLabel state3
         (thenCode, state5) = translateCmds thenBlock state4
         (elseCode, state6) = translateCmds elseBlock state5
-        (trueTemp, state7) = newTemp state6
+        (trueTemp, state7) = getReservedTemp state6 
     in ( [CONST trueTemp 1] ++
          condCode ++
          [CJUMP Eq condTemp trueTemp thenLabel,
