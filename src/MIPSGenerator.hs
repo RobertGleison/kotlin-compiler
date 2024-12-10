@@ -37,6 +37,7 @@ data MipsInstr
     | MipsLa String String                 -- Load address
     | MipsDataString String String         -- String in data section
     | MipsDataSpace String Int             -- Space allocation
+
     deriving Show
 
 -- State management
@@ -52,15 +53,16 @@ initialState = CodeGenState 0 Map.empty
 -- Data Section Generation
 generateData :: IRProg -> [MipsInstr]
 generateData prog =
-    [ MipsDataString "newline" "\n"     -- Simplified newline
-    , MipsDataSpace "buffer" 100
+    [ MipsDataString "newline" "\"\\n\""     -- Properly escaped newline
+    , MipsDataSpace "buffer" 100            -- Buffer for string input
     ] ++
     concatMap extractStrings prog
     where
         extractStrings :: IRInstr -> [MipsInstr]
         extractStrings (STRINGCONST t str) = 
-            [MipsDataString t ("\"" ++ str ++ "\"")]
+            [MipsDataString t (processString str)]
         extractStrings _ = []
+
 
 isStringTemp :: String -> [MipsInstr] -> Bool
 isStringTemp temp dataSection = any (isDataString temp) dataSection
@@ -73,31 +75,32 @@ generateLibrary :: [MipsInstr]
 generateLibrary = 
     [ -- Print string function
       MipsLabel "print_string"
-    , MipsLw "$a0" 0 "$sp"     -- load string address from stack
-    , MipsLi "$v0" 4           -- syscall 4 = print string
+    , MipsLw "$a0" 0 "$sp"
+    , MipsLi "$v0" 4
     , MipsSyscall
-    , MipsMove "$v0" "$zero"   -- Return 0
+    , MipsMove "$v0" "$zero"
     , MipsJr "$ra"
     
     -- Print integer function
     , MipsLabel "print_int"
-    , MipsLw "$a0" 0 "$sp"     -- load integer from stack
-    , MipsLi "$v0" 1           -- syscall 1 = print integer
+    , MipsLw "$a0" 0 "$sp"
+    , MipsLi "$v0" 1
     , MipsSyscall
-    , MipsMove "$v0" "$zero"   -- Return 0
-    , MipsJr "$ra"
-    
-    -- Read integer function
-    , MipsLabel "scan_int"
-    , MipsLi "$v0" 5           -- syscall 5 = read integer
-    , MipsSyscall              -- Result already in $v0
+    , MipsMove "$v0" "$zero"
     , MipsJr "$ra"
     
     -- Read string function
     , MipsLabel "scan_string"
-    , MipsLw "$a0" 0 "$sp"     -- load buffer address
-    , MipsLw "$a1" 4 "$sp"     -- load buffer size
-    , MipsLi "$v0" 8           -- syscall 8 = read string
+    , MipsLw "$a0" 0 "$sp"      -- Load buffer address
+    , MipsLw "$a1" 4 "$sp"      -- Load buffer size
+    , MipsLi "$v0" 8            -- syscall 8 = read string
+    , MipsSyscall
+    , MipsMove "$v0" "$a0"      -- Return buffer address
+    , MipsJr "$ra"
+    
+    -- Read integer function
+    , MipsLabel "scan_int"
+    , MipsLi "$v0" 5
     , MipsSyscall
     , MipsJr "$ra"
     ]
@@ -115,17 +118,27 @@ translateInstr (CONST temp val) =
 translateInstr (BINOP op dst src1 src2) =
     [MipsComment $ "BINOP " ++ show op] ++
     case op of
-        Eq  -> [MipsLt "$t8" (getReg src1) (getReg src2),
-                MipsLt "$t9" (getReg src2) (getReg src1),
-                MipsOr (getReg dst) "$t8" "$t9",
-                MipsXor (getReg dst) (getReg dst) "1"]
-        Neq -> [MipsLt "$t8" (getReg src1) (getReg src2),
-                MipsLt "$t9" (getReg src2) (getReg src1),
-                MipsOr (getReg dst) "$t8" "$t9"]
+        Eq  -> [MipsXor "$t8" (getReg src1) (getReg src2),
+                MipsLi "$t9" 1,               -- Changed from overwriting source registers
+                MipsLt (getReg dst) "$t8" "$t9",  -- 1 if XOR result < 1 (i.e., is 0)
+                MipsXor (getReg dst) (getReg dst) "$t9"]  -- Use $t9 instead of immediate 1
+                
+        -- Not Equal (!=): XOR them, then use slt to check if result is not 0
+        Neq -> [MipsXor "$t8" (getReg src1) (getReg src2),
+                MipsLi "$t9" 1,
+                MipsLt (getReg dst) "$t8" "$t9"] 
+                
+        -- Less Than (<): Direct slt
         Lt  -> [MipsLt (getReg dst) (getReg src1) (getReg src2)]
+                
+        -- Greater Than (>): Swap operands in slt
         Gt  -> [MipsLt (getReg dst) (getReg src2) (getReg src1)]
+                
+        -- Greater Than or Equal (>=): slt and invert result
         Gte -> [MipsLt (getReg dst) (getReg src1) (getReg src2),
                 MipsXor (getReg dst) (getReg dst) "1"]
+                
+        -- Less Than or Equal (<=): Swap operands in slt and invert result
         Lte -> [MipsLt (getReg dst) (getReg src2) (getReg src1),
                 MipsXor (getReg dst) (getReg dst) "1"]
         And -> [MipsLt "$t8" "$zero" (getReg src1), 
@@ -155,14 +168,14 @@ translateInstr (JUMP lbl) = [MipsJ lbl]
 translateInstr (CJUMP op src1 src2 lbl) =
     [MipsComment $ "CJUMP " ++ show op] ++
     case op of
-        Eq  -> [MipsBne (getReg src1) (getReg src2) lbl]
-        Neq -> [MipsBeq (getReg src1) (getReg src2) lbl]
+        Eq  -> [MipsBeq (getReg src1) (getReg src2) lbl]
+        Neq -> [MipsBne (getReg src1) (getReg src2) lbl]
         Lt  -> [MipsBlt (getReg src1) (getReg src2) lbl]
-        Gt  -> [MipsBgt (getReg src1) (getReg src2) lbl]
+        Gt  -> [MipsBeq (getReg src1) "1" lbl]
         _ -> error $ "Unsupported comparison operator: " ++ show op
 
 translateInstr (STRINGCONST temp str) =
-    [MipsComment $ "STRING CONST " ++ temp ++ " = " ++ show str,
+    [MipsComment $ "STRING CONST " ++ temp,
      MipsLa (getReg temp) temp]
 
 translateInstr (STORE addr val) =
@@ -180,6 +193,15 @@ translateInstr (RETURN temp) =
 
 translateInstr NOP = [MipsComment "NOP"]
 
+
+processString :: String -> String
+processString s = "\"" ++ concatMap escapeChar s ++ "\""
+  where
+    escapeChar '\n' = "\\n"
+    escapeChar '$' = "\\$"  -- Escape dollar signs
+    escapeChar c = [c]
+
+
 -- Instruction translation with data section context
 translateInstrWithData :: [MipsInstr] -> IRInstr -> [MipsInstr]
 translateInstrWithData dataSection (CALL dst fname args) =
@@ -191,26 +213,40 @@ translateInstrWithData dataSection (CALL dst fname args) =
         restoreStack = if not (null args)
                       then [MipsAdd "$sp" "$sp" (show (4 * length args))]
                       else []
-        actualFname = case fname of
+        
+        -- Handle different function calls
+        (actualFname, setupInstr, cleanup) = case fname of
             "print" -> case args of
                         (arg:_) -> if isStringTemp arg dataSection
-                                  then "print_string"
-                                  else "print_int"
-                        _ -> "print_string"
-            other -> other
+                                  then ("print_string", [], restoreStack)
+                                  else ("print_int", [], restoreStack)
+                        _ -> ("print_string", [], restoreStack)
+            "scan" -> ("scan_string",  -- Use scan_string for scan
+                      [ MipsSub "$sp" "$sp" "8",     -- Make space for buffer and size
+                        MipsLa "$t8" "buffer",      -- Load buffer address
+                        MipsLi "$t9" 100,          -- Buffer size
+                        MipsSw "$t8" 0 "$sp",      -- Store buffer address
+                        MipsSw "$t9" 4 "$sp"       -- Store buffer size
+                      ],
+                      [MipsAdd "$sp" "$sp" "8"])     -- Cleanup extra space
+            other -> (other, [], restoreStack)
+            
     in [MipsComment $ "CALL " ++ fname] ++
-        (if not (null args) then setupStack else []) ++
-        [MipsSw "$ra" (-4) "$sp"] ++    
-        saveArgs ++
-        [MipsJal actualFname] ++
-        restoreStack ++
-        [MipsLw "$ra" (-4) "$sp",     
-         MipsMove (getReg dst) "$v0"]
+       (if fname /= "scan" && not (null args) then setupStack else []) ++
+       [MipsSw "$ra" (-4) "$sp"] ++
+       setupInstr ++
+       (if fname /= "scan" then saveArgs else []) ++
+       [MipsJal actualFname] ++
+       cleanup ++
+       [MipsLw "$ra" (-4) "$sp",
+        MipsMove (getReg dst) "$v0"]
+
 translateInstrWithData _ instr = translateInstr instr
 
 -- Helper Functions
 needsLibraryFunction :: IRInstr -> Bool
-needsLibraryFunction (CALL _ fname _) = fname `elem` ["print", "print_string", "print_int", "scan"]
+needsLibraryFunction (CALL _ fname _) = 
+    fname `elem` ["print", "print_string", "print_int", "scan", "scan_string", "scan_int"]
 needsLibraryFunction _ = False
 
 getReg :: Temp -> String
@@ -264,7 +300,7 @@ mipsToString (MipsComment comment) = "\t# " ++ comment
 mipsToString (MipsMfhi dst) = "\tmfhi " ++ dst
 mipsToString MipsSyscall = "\tsyscall"
 mipsToString (MipsLa dst label) = "\tla " ++ dst ++ ", " ++ label
-mipsToString (MipsDataString label str) = label ++ ": .asciiz " ++ str
+mipsToString (MipsDataString label str) = label ++ ": .asciiz " ++ str 
 mipsToString (MipsDataSpace label size) = label ++ ": .space " ++ show size
 
 -- Main Assembly Generation
