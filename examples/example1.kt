@@ -1,13 +1,13 @@
 fun main() {
     var x: Int = 42;
     var teste: Boolean = false;
-    var y: Int = 10;
+    var y = readln();
     var scopeTest: Int = 10;
    
-    if (x > y) {
-        return x;
+    if (2 % 2 == 0) {
+        print("Maior")
     } else {
-        return y;
+        print("Menor");
     }
     scopeTest = 10;
 }

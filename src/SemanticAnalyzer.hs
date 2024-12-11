@@ -137,6 +137,9 @@ checkArithOp _ _ = Left "Type mismatch in arithmetic operation"
 
 checkCompOp :: Type -> Type -> Either String Type
 checkCompOp IntType IntType = Right BooleanType
+checkCompOp UnitType IntType = Right BooleanType
+checkCompOp IntType UnitType = Right BooleanType
+checkCompOp UnitType UnitType = Right BooleanType
 checkCompOp _ _ = Left "Type mismatch in comparison operation"
 
 checkBoolOp :: Type -> Type -> Either String Type
